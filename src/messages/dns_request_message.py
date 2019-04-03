@@ -31,8 +31,13 @@ class DNSRequestMessage(Message):
 		ip = self.ip
 		ip = ip.split('.')
 		ip = [int(i).to_bytes(1, 'big') for i in ip]
-		soc.send(pack('B'+HOSTNAME_MAX_LEN+'s4cH', self.service_id, self.hostname.encode(), ip[0], ip[1], ip[2], ip[3], self.port.to_bytes(2, 'big')))
+		soc.send(pack('B'+str(HOSTNAME_MAX_LEN)+'s4cH', self.service_id, self.hostname.encode(), ip[0], ip[1], ip[2], ip[3], self.port))
 
 	def receive(self, soc):
 		arr = soc.recv(DNSRequestMessage.size)
-		self.service_id = arr[0]
+		service_id, hostname, ip0, ip1, ip2, ip3, port = unpack('B'+str(HOSTNAME_MAX_LEN)+'s4cH', arr)
+		self.service_id = service_id
+		self.hostname = hostname.decode().strip()
+		self.ip = str(int.from_bytes(ip0, 'big')) + "." + str(int.from_bytes(ip1, 'big')) + "." + str(int.from_bytes(ip2, 'big')) + "." + str(int.from_bytes(ip3, 'big'))
+		self.port = port
+
