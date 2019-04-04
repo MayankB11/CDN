@@ -1,4 +1,8 @@
-from message import *
+import sys
+# need to make it relative
+sys.path.insert(0, "/home/animesh/Documents/Dev/DS/CDN/src/")
+
+from .message import *
 from config import *
 from struct import *
 
