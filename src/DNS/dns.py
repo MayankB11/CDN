@@ -73,7 +73,7 @@ def read(conn, mask):
 		conn.close()
 
 sock = socket.socket()
-host = socket.gethostname()
+host = DNS_IP
 port = DNS_PORT
 sock.bind((host, port))
 sock.listen(DNS_MAX_LISTEN)

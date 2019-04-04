@@ -9,9 +9,9 @@ from config import *
 import selectors
 import socket
 
-s = socket.socket()         # Create a socket object
-host = socket.gethostname() # Get local machine name
-port = DNS_PORT                # Reserve a port for your service.
+s = socket.socket()    
+host = DNS_IP 
+port = DNS_PORT                
 
 s.connect((host, port))
 
