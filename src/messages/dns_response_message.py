@@ -23,7 +23,7 @@ class DNSResponseMessage(Message):
 
 	size = 24
 
-	def __init__(self, ipblocks):
+	def __init__(self, ipblocks = None):
 		self.ipblocks = ipblocks
 
 	def send(self, soc):

@@ -24,7 +24,7 @@ class DNSRequestMessage(Message):
 		if len(hostname) > HOSTNAME_MAX_LEN:
 			raise Exception("Length of hostname must be less than 249 characters!")
 		self.hostname = hostname
-		if service_id is not None:
+		if service_id == 0:
 			self.ip = ip
 			self.port = port
 		else:
@@ -39,9 +39,13 @@ class DNSRequestMessage(Message):
 
 	def receive(self, soc):
 		arr = soc.recv(DNSRequestMessage.size)
-		service_id, hostname, ip0, ip1, ip2, ip3, port = unpack('B'+str(HOSTNAME_MAX_LEN)+'s4cH', arr)
-		self.service_id = service_id
-		self.hostname = hostname.decode().strip()
-		self.ip = str(int.from_bytes(ip0, 'big')) + "." + str(int.from_bytes(ip1, 'big')) + "." + str(int.from_bytes(ip2, 'big')) + "." + str(int.from_bytes(ip3, 'big'))
-		self.port = port
+		if len(arr) < DNSRequestMessage.size:
+			self.received = False
+		else:
+			self.received = True
+			service_id, hostname, ip0, ip1, ip2, ip3, port = unpack('B'+str(HOSTNAME_MAX_LEN)+'s4cH', arr)
+			self.service_id = service_id
+			self.hostname = hostname.decode().strip()
+			self.ip = str(int.from_bytes(ip0, 'big')) + "." + str(int.from_bytes(ip1, 'big')) + "." + str(int.from_bytes(ip2, 'big')) + "." + str(int.from_bytes(ip3, 'big'))
+			self.port = port
 

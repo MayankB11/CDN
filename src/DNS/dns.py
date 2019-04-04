@@ -48,7 +48,7 @@ def accept(sock, mask):
 def read(conn, mask):
 	msg = DNSRequestMessage(0, "")
 	msg.receive(conn)
-	if data:
+	if msg.received:
 		if msg.service_id == 0:
 			# add_entry
 			if msg.hostname in hostname_ip_map:
@@ -62,7 +62,7 @@ def read(conn, mask):
 			else:
 				ipblocks = hostname_ip_map[msg.hostname][0:2]
 
-			while len(ipblocks < 2):
+			while len(ipblocks) < 2:
 				ipblocks.append(('0.0.0.0', 0))
 
 			response_msg = DNSResponseMessage(ipblocks)
@@ -73,7 +73,9 @@ def read(conn, mask):
 		conn.close()
 
 sock = socket.socket()
-sock.bind(('localhost', DNS_PORT))
+host = socket.gethostname()
+port = DNS_PORT
+sock.bind((host, port))
 sock.listen(DNS_MAX_LISTEN)
 sock.setblocking(False)
 sel.register(sock, selectors.EVENT_READ, accept)
