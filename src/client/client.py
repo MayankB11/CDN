@@ -1,5 +1,5 @@
 import sys
-# need to make it relative
+
 sys.path.insert(0, "../")
 
 from messages.dns_request_message import *
