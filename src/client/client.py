@@ -29,6 +29,22 @@ s.close()
 
 ############# Request file from load balancer
 
+err_count = 0
+
+for host, port in ipblocks:
+	s = socket.socket()
+	try:
+		s.connect((host, port))
+		break
+	except socket.error:
+		err_count += 1
+		continue
+
+if err_count == 2:
+	raise Exception("Load Balancer could not be reached!")
+
+
+
 
 ############# Request file from redirected IP of edge server
 
