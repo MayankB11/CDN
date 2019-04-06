@@ -1,6 +1,6 @@
 import sys
-# need to make it relative
-sys.path.insert(0, "/home/animesh/Documents/Dev/DS/CDN/src/")
+
+sys.path.insert(0, "../")
 
 from messages.dns_request_message import *
 from messages.dns_response_message import *
