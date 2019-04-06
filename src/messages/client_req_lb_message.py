@@ -8,7 +8,9 @@ from config import *
 
 class ClientReqLBMessage(Message):
 
-	def __init__(self,content_id,loc_id):
+	size = LOCATION_ID_MAX_LEN + CONTENT_ID_MAX_LEN
+
+	def __init__(self,content_id = None,loc_id = None):
 		self.loc_id = loc_id
 		self.content_id = content_id
 
