@@ -21,8 +21,11 @@ def send_heartbeat():
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-def accept_client():
-	pass
+def accept_client(conn):
+	c,addr = conn.accept()
+	print("Accepted connection from",addr)
+	c.setblocking(False)
+	sel.register(conn, selectors.EVENT_READ, serve_client)
 def serve_client(conn):
 	conn.close()
 	pass
@@ -52,7 +55,14 @@ def main():
 	s.setblocking(False)
 
 	sel.register(s, selectors.EVENT_READ, data=None)
+	
 	while True:
+		events = sel.select(timeout=None)
+		for key, mask in events:
+			if key.data is None:
+				accept_client(key.fileobj)
+			else:
+				serve_client(key, mask)
 		break
 
 	s.close()
