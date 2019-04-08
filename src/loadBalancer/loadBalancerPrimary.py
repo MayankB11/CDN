@@ -31,21 +31,26 @@ def clientReqListener():
 	sel.register(sock, selectors.EVENT_READ, acceptClientReq)
 
 def heartBeat():
-	sock = socket.socket()
-	sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-	host = socket.gethostname()
-	port = LB_HEARTBEAT_PORT
-	sock.bind((host, port))
-	sock.listen(1)
-	conn, addr = sock.accept()
-	print('Accepted', conn, 'from', addr)
-	print('Connected to backup load balancer')
-
 	while(True):
-		print("Sent HeartBeat")
-		msg = LBHeartbeatMessage()
-		msg.send(conn)
-		time.sleep(LB_HEARTBEAT_TIME)
+		sock = socket.socket()
+		sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+		host = socket.gethostname()
+		port = LB_HEARTBEAT_PORT
+		sock.bind((host, port))
+		sock.listen(1)
+		conn, addr = sock.accept()
+		print('Accepted', conn, 'from', addr)
+		print('Connected to backup load balancer')
+
+		while(True):
+			print("Sent HeartBeat")
+			msg = LBHeartbeatMessage()
+			try:
+				msg.send(conn)
+			except:
+				print("Connection to backup failed")
+				break
+			time.sleep(LB_HEARTBEAT_TIME)
 
 if __name__ == "__main__":
 	t = Thread(target=heartBeat)

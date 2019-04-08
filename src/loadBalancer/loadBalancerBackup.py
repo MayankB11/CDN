@@ -43,6 +43,13 @@ def balancer():
 		print("Now acting as primary")
 		time.sleep(1)
 
+def check_and_run_balancer():
+	global state
+	if state == State.SECONDARY:
+		state = State.PRIMARY
+		t = Thread(target=balancer)
+		t.start()
+
 
 state = State.SECONDARY
 
@@ -59,7 +66,7 @@ if __name__ == "__main__":
 				sock.connect((host, port))
 				break
 			except:
-				print("Failed! Retrying")
+				check_and_run_balancer()
 				time.sleep(1)
 				continue
 
@@ -72,8 +79,3 @@ if __name__ == "__main__":
 
 		while msg.received:
 			msg.receive(sock)
-
-		if state == State.SECONDARY:
-			state = State.PRIMARY
-			t = Thread(target=balancer)
-			t.start()
