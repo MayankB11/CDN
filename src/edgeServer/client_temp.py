@@ -11,13 +11,13 @@ s.connect((host, port))
 message = ContentRequestMessage(1, 0)
 message.send(s)
 
-with open('as.png', 'wb') as f:
+with open('share_rec.png', 'wb') as f:
     print('file opened')
     while True:
         mes = ContentMessage(0, 0)
         print('receiving data...')
         mes.receive(s)
-        print(mes.content_id)
+        print(mes.content_id)   
         print(mes.seq_no)
         data = mes.data
         if not data:

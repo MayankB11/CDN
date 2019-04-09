@@ -67,22 +67,28 @@ lru_dict = {1:None}
 def serve_client(conn,addr):
 	message = ContentRequestMessage(0, 0)
 	message.receive(conn)
+	# Get filename from file
 	if message.received == False:
 		return
-	filename = content_dict[message.content_id]
-	f = open(filename, 'rb')
-	l = f.read(1020)
-	i = 0
-	while (l):
-		if message.seq_no <= i:
-			msg = ContentMessage(message.content_id, i)
-			msg.data = l
-			msg.send(conn)
-			i += 1
+	
+	# Check if file is present in edge server
+	if message.content_id in content_dict:
+		filename = content_dict[message.content_id]
+		f = open(filename, 'rb')
 		l = f.read(1020)
-	f.close()
+		i = 0
+		while (l):
+			if message.seq_no <= i:
+				msg = ContentMessage(message.content_id, i)
+				msg.data = l
+				msg.send(conn)
+				i += 1
+			l = f.read(1020)
+		f.close()
+	else:
+		# Get chunks of data from origin and send to client
+		pass
 	conn.close()
-
 
 def main():	
 	# sel = selectors.DefaultSelector()
