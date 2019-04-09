@@ -7,6 +7,9 @@ from threading import Timer, Thread
 import selectors
 sys.path.insert(0, "../")
 from messages.edge_heartbeat_message import *
+from messages.content_related_messages import *
+
+EDGE_SERVER_PORT = 30001
 
 
 def send_heartbeat():
@@ -49,7 +52,7 @@ def send_heartbeat():
 				break
 			time.sleep(EDGE_HEARTBEAT_TIME)
 	sock.close()
-# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 
 # def accept_client(conn):
 # 	c,addr = conn.accept()
@@ -57,59 +60,72 @@ def send_heartbeat():
 # 	c.setblocking(False)
 # 	sel.register(conn, selectors.EVENT_READ, serve_client)
 
-# def serve_client(conn):
-# 	conn.close()
-# 	pass
+# Dictionary of files present at the edge server
+content_dict = {1: 'share.png'}
+lru_dict = {1:None}
 
-# def main():
-# #	check_timer()
-# # 	TO DO
-# #	1. Start new thread for heartbeat mechanism
+def serve_client(conn,addr):
+	message = ContentRequestMessage(0, 0)
+	message.receive(conn)
+	if message.received == False:
+		return
+	filename = content_dict[message.content_id]
+	f = open(filename, 'rb')
+	l = f.read(1020)
+	i = 0
+	while (l):
+		if message.seq_no <= i:
+			msg = ContentMessage(message.content_id, i)
+			msg.data = l
+			msg.send(conn)
+			i += 1
+		l = f.read(1020)
+	f.close()
+	conn.close()
 
-# #	2. Use select to listen to/serve clients, similar to DNS
+
+def main():	
+	# sel = selectors.DefaultSelector()
 	
-# 	sel = selectors.DefaultSelector()
+	try: 
+		s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
+		print("Socket successfully created")
+	except socket.error as err: 
+		print ("socket creation failed with error %s" %(err)) 
+	s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
+	port = EDGE_SERVER_PORT
+	s.bind(('', port))         
+	print ("socket binded to %s" %(port)) 	
 	
-# 	try: 
-# 		s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
-# 		print("Socket successfully created")
-# 	except socket.error as err: 
-# 		print ("socket creation failed with error %s" %(err)) 
+	s.listen(5)
 
-# 	port = 20020
+	# s.setblocking(False)
+	# sel.register(s, selectors.EVENT_READ, data=None)
+	threads = []
+	while True:
+		c, addr = s.accept()
+		print("Accepted connection from", addr)
+		t = Thread(target = serve_client, args = (c,addr))
+		threads.append(t)
+		t.start()
+		# events = sel.select(timeout=None)
+		# for key, mask in events:
+		# 	if key.data is None:
+		# 		accept_client(key.fileobj)
+		# 	else:
+		# 		serve_client(key, mask)
+		# break
+	for t in threads:
+		t.join()
+	s.close()
 
-# 	s.bind(('', port))         
-# 	print ("socket binded to %s" %(port)) 	
-	
-# 	s.listen()
-
-# 	s.setblocking(False)
-
-# 	sel.register(s, selectors.EVENT_READ, data=None)
-	
-# 	while True:
-# 		events = sel.select(timeout=None)
-# 		for key, mask in events:
-# 			if key.data is None:
-# 				accept_client(key.fileobj)
-# 			else:
-# 				serve_client(key, mask)
-# 		break
-
-# 	s.close()
-def main():
-	pass
 
 
 if __name__ == '__main__':
 	Threads = []
-	t1 = Thread(target = send_heartbeat)
-	t1.start()
-	t2 = Thread(target = main)
-	t2.start()
-	Threads.append(t1)
-	Threads.append(t2)
-	for t in Threads:
-		t.join()	
-	# main()
+	t = Thread(target = send_heartbeat)
+	t.start()
+	main()
+	t.join()
 
