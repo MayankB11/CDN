@@ -17,8 +17,12 @@ class EdgeHeartbeatMessage(Message):
 		soc.send(pack('B', 1))
 
 	def receive(self, soc):
-		arr = soc.recv(EdgeHeartbeatMessage.size)
-		if len(arr) < EdgeHeartbeatMessage.size:
+		soc.settimeout(MSG_DELAY+EDGE_HEARTBEAT_TIME)
+		try:
+			arr = soc.recv(EdgeHeartbeatMessage.size)
+			if len(arr) < EdgeHeartbeatMessage.size:
+				self.received = False
+			else:
+				self.received = True
+		except:
 			self.received = False
-		else:
-			self.received = True
