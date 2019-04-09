@@ -23,9 +23,18 @@ class State(Enum):
 	PRIMARY = 1
 	SECONDARY = 2
 
+state = State.SECONDARY
+
 def backup_data():
 	# Receive data from Primary and save it
-	pass
+	global state
+	while(True):
+		if state == State.SECONDARY:
+
+		else:
+			time.sleep(1)
+			
+
 def serve_edge_server():
 	# Send data to Edge server
 	pass
@@ -49,7 +58,6 @@ def check_and_run_origin():
 		t.start()
 
 
-state = State.SECONDARY
 
 def main():
 	global state
