@@ -6,7 +6,7 @@ from .message import *
 from config import *
 
 FILENAME_MAX_LEN = 252
-MAX_DATA_PACKET_SIZE = 1020
+MAX_DATA_PACKET_SIZE = 1018
 
 class ContentRequestMessage(Message):
 
@@ -69,6 +69,7 @@ class ContentMessage(Message):
 	"""
 	content_id (integer)
 	seq_no (integer)
+	packet_size (integer)
 	data (bytes)
 	"""
 
@@ -77,10 +78,11 @@ class ContentMessage(Message):
 	def __init__(self, content_id, seq_no):
 		self.content_id = content_id
 		self.seq_no = seq_no
+		self.packet_size = 0
 		self.data = None
 
 	def send(self, soc):
-		soc.send(pack('HH' + str(MAX_DATA_PACKET_SIZE) + 's', self.content_id, self.seq_no, self.data))
+		soc.send(pack('H' + str(MAX_DATA_PACKET_SIZE) + 'sHH', self.content_id, self.data, self.packet_size, self.seq_no))
 
 	def receive(self, soc):
 		arr = soc.recv(ContentMessage.size)
@@ -88,7 +90,8 @@ class ContentMessage(Message):
 			self.received = False
 		else:
 			self.received = True
-			content_id, seq_no, data = unpack('HH' + str(MAX_DATA_PACKET_SIZE) + 's', arr)
+			content_id, data, packet_size, seq_no = unpack('H' + str(MAX_DATA_PACKET_SIZE) + 'sHH', arr)
 			self.content_id = content_id
 			self.seq_no = seq_no
-			self.data = data
+			self.data = data[:packet_size]
+			self.packet_size = packet_size
