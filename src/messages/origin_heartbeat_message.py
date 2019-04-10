@@ -8,13 +8,14 @@ from struct import *
 
 class OriginHeartbeatMessage(Message):
 
-	size = 1
+	signature = 'B'
+	size = calcsize(signature)
 
 	def __init__(self):
 		pass
 
 	def send(self, soc):
-		soc.send(pack('B', 1))
+		soc.send(pack(OriginHeartbeatMessage.signature, 1))
 
 	def receive(self, soc):
 		# soc.settimeout(MSG_DELAY+_HEARTBEAT_TIME)

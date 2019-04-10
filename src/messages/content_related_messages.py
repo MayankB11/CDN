@@ -15,15 +15,15 @@ class ContentRequestMessage(Message):
 	seq_no (integer)
 
 	"""
-
-	size = 4
+	signature = 'HH'
+	size = calcsize(signature)
 
 	def __init__(self, content_id, seq_no):
 		self.content_id = content_id
 		self.seq_no = seq_no
 
 	def send(self, soc):
-		soc.send(pack('HH', self.content_id, self.seq_no))
+		soc.send(pack(ContentRequestMessage.signature, self.content_id, self.seq_no))
 
 	def receive(self, soc):
 		arr = soc.recv(ContentRequestMessage.size)
@@ -31,7 +31,7 @@ class ContentRequestMessage(Message):
 			self.received = False
 		else:
 			self.received = True
-			content_id, seq_no = unpack('HH', arr)
+			content_id, seq_no = unpack(ContentRequestMessage.signature, arr)
 			self.content_id = content_id
 			self.seq_no = seq_no
 

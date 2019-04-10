@@ -16,8 +16,8 @@ class DNSRequestMessage(Message):
 	port (integer)
 
 	"""
-
-	size = 256
+	signature = 'B'+str(HOSTNAME_MAX_LEN)+'s4cH'
+	size = calcsize(signature)
 
 	def __init__(self, service_id, hostname, ip = None, port = None):
 		self.service_id = service_id
@@ -35,7 +35,7 @@ class DNSRequestMessage(Message):
 		ip = self.ip
 		ip = ip.split('.')
 		ip = [int(i).to_bytes(1, 'big') for i in ip]
-		soc.send(pack('B'+str(HOSTNAME_MAX_LEN)+'s4cH', self.service_id, self.hostname.encode(), ip[0], ip[1], ip[2], ip[3], self.port))
+		soc.send(pack(DNSRequestMessage.signature, self.service_id, self.hostname.encode(), ip[0], ip[1], ip[2], ip[3], self.port))
 
 	def receive(self, soc):
 		arr = soc.recv(DNSRequestMessage.size)
@@ -43,7 +43,7 @@ class DNSRequestMessage(Message):
 			self.received = False
 		else:
 			self.received = True
-			service_id, hostname, ip0, ip1, ip2, ip3, port = unpack('B'+str(HOSTNAME_MAX_LEN)+'s4cH', arr)
+			service_id, hostname, ip0, ip1, ip2, ip3, port = unpack(DNSRequestMessage.signature, arr)
 			self.service_id = service_id
 			self.hostname = hostname.decode().strip()
 			self.ip = str(int.from_bytes(ip0, 'big')) + "." + str(int.from_bytes(ip1, 'big')) + "." + str(int.from_bytes(ip2, 'big')) + "." + str(int.from_bytes(ip3, 'big'))
