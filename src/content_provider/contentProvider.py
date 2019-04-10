@@ -1,6 +1,7 @@
 from _thread import *
 import socket
-import sys  
+import sys 
+import os 
 import time
 import sched
 from threading import Timer, Thread
@@ -8,7 +9,7 @@ import selectors
 sys.path.insert(0, "../")
 from config import *
 from messages.content_related_messages import *
-
+from edgeServer.edgeServer import md5
 content_dict = {}
 
 def main():
@@ -36,21 +37,25 @@ def main():
 		except:
 			print("Connection to origin failed")
 			return
-			
-
+	
 	filename = sys.argv[1]
-	content_id = sys.argv[2]
+	content_id = int(sys.argv[2])
+	file_size = int(os.stat(filename).st_size)
+	file_des = FileDescriptionMessage(content_id,file_size,filename,md5(filename))
+	file_des.send(sock)
 	f = open(filename, 'rb')
-	l = f.read(1020)
+	l = f.read(1018)
 	i = 0
 	while (l):
 		# if message.seq_no <= i:
-		msg = ContentMessage(int(content_id), i)
+		msg = ContentMessage(content_id, i)
 		msg.data = l
+		msg.packet_size = len(l)
 		msg.send(sock)
 		i += 1
-		l = f.read(1020)
+		l = f.read(1018)
 	f.close()
 	sock.close()
+	
 if __name__ == '__main__':
 	main()

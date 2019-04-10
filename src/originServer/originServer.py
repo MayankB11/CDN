@@ -15,6 +15,7 @@ sys.path.insert(0, "../")
 from messages.content_related_messages import *
 from messages.origin_heartbeat_message import *
 from config import *
+from edgeServer.edgeServer import md5
 
 content_dict = {}
 
@@ -39,12 +40,13 @@ def send_heartbeat():
 				print("Connection to backup failed")
 				break
 			time.sleep(ORIGIN_HEARTBEAT_TIME)
-	
+		
 
 def serve_edge_server_helper(conn, addr):
 	conn.close()
 
 def serve_edge_server():
+	global content_dict
 	try: 
 		s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
 		print("Socket successfully created")
@@ -72,7 +74,13 @@ def serve_edge_server():
 
 def serve_content_provider_helper(c,addr):
 	global content_dict
-	with open('temp.png','wb') as f:
+	file_des = FileDescriptionMessage(0, 0, '', 0)
+	file_des.receive(c)
+	print(file_des.file_name)
+	print(file_des.content_id)
+	print(file_des.file_size)
+	content_dict[file_des.content_id] = file_des.file_name
+	with open(file_des.file_name,'wb') as f:
 		while True:
 			mes = ContentMessage(0,0)
 			print('receiving data...')
@@ -83,7 +91,11 @@ def serve_content_provider_helper(c,addr):
 			if not data:
 				break
 			f.write(data)
-	content_dict[mes.content_id] = 'temp.png'
+		print("successfully received the file")
+	if md5(file_des.file_name) == file_des.md5_val:
+		print("MD5 Matched!")
+	else:
+		print("MD5 didn't match")
 	c.close()
 
 def serve_content_provider():

@@ -30,10 +30,13 @@ def backup_data():
 	global state
 	while(True):
 		if state == State.SECONDARY:
-
+			# Define socket to receive data
+			# Accept connection
+			# Receive data, store it
+			# if socket disconnects, break out of loop, wait till we become primary
 		else:
 			time.sleep(1)
-			
+			#  Do nothing
 
 def serve_edge_server():
 	# Send data to Edge server

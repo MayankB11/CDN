@@ -62,12 +62,6 @@ def send_heartbeat():
 	sock.close()
 
 
-# def accept_client(conn):
-# 	c,addr = conn.accept()
-# 	print("Accepted connection from",addr)
-# 	c.setblocking(False)
-# 	sel.register(conn, selectors.EVENT_READ, serve_client)
-
 # Dictionary of files present at the edge server
 content_dict = {1: 'share.png'}
 lru_dict = {1:None}
@@ -104,7 +98,6 @@ def serve_client(conn,addr):
 	conn.close()
 
 def main():	
-	# sel = selectors.DefaultSelector()
 	
 	try: 
 		s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
@@ -119,8 +112,7 @@ def main():
 	
 	s.listen(5)
 
-	# s.setblocking(False)
-	# sel.register(s, selectors.EVENT_READ, data=None)
+
 	threads = []
 	while True:
 		c, addr = s.accept()
@@ -128,13 +120,6 @@ def main():
 		t = Thread(target = serve_client, args = (c,addr))
 		threads.append(t)
 		t.start()
-		# events = sel.select(timeout=None)
-		# for key, mask in events:
-		# 	if key.data is None:
-		# 		accept_client(key.fileobj)
-		# 	else:
-		# 		serve_client(key, mask)
-		# break
 	for t in threads:
 		t.join()
 	s.close()
