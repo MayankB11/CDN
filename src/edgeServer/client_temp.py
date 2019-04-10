@@ -25,7 +25,7 @@ file_des.receive(s)
 print(file_des.file_name)
 print(file_des.content_id)
 print(file_des.file_size)
-with open('share_rec.png', 'wb') as f:
+with open('rec_' + file_des.file_name, 'wb') as f:
     print('file opened')
     while True:
         mes = ContentMessage(0, 0)
@@ -43,7 +43,7 @@ f.close()
 print('Successfully got the file')
 new_filename = 'rec_' + file_des.file_name
 # check md5
-if md5('share_rec.png') == file_des.md5_val:
+if md5('rec_' + file_des.file_name) == file_des.md5_val:
     print("MD5 Matched!")
 else:
     print("MD5 didn't match")
