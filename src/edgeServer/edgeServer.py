@@ -63,10 +63,47 @@ def send_heartbeat():
 
 
 # Dictionary of files present at the edge server
-content_dict = {1: 'share.png'}
+content_dict = {}
 lru_dict = {1:None}
 
+def fetch_and_send(conn,addr,content_id):
+	try: 
+		s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
+		print("Socket successfully created")
+	except socket.error as err: 
+		print ("socket creation failed with error %s" %(err)) 
+	s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+	host = socket.gethostname()
+	port = ORIGIN_SERVER_PORT
+	s.connect((host, port))
+	message = ContentRequestMessage(content_id, 0)
+	message.send(s)
+	file_des = FileDescriptionMessage(0, 0, '', 0)
+	file_des.receive(s)
+	content_dict[file_des.content_id] = file_des.file_name
+	file_des.send(conn)
+	with open(file_des.file_name,'wb') as f:
+		while True:
+			mes = ContentMessage(0,0)
+			print('receiving data...')
+			mes.receive(s)
+			print(mes.content_id) 
+			print(mes.seq_no)
+			data = mes.data
+			if not data:
+				break
+			mes.send(conn)
+			f.write(data)
+		print("successfully received the file")
+	if md5(file_des.file_name) == file_des.md5_val:
+		print("MD5 Matched!")
+	else:
+		print("MD5 didn't match")
+	content_dict[content_id]=file_des.file_name
+	s.close()
+
 def serve_client(conn,addr):
+	global content_dict
 	message = ContentRequestMessage(0, 0)
 	message.receive(conn)
 	# Get filename from file
@@ -94,7 +131,7 @@ def serve_client(conn,addr):
 		f.close()
 	else:
 		# Get chunks of data from origin and send to client
-		pass
+		fetch_and_send(conn,addr,message.content_id)
 	conn.close()
 
 def main():	

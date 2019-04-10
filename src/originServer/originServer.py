@@ -11,13 +11,14 @@ import time
 import sched
 from threading import Timer, Thread
 import selectors
+import os
 sys.path.insert(0, "../")
 from messages.content_related_messages import *
 from messages.origin_heartbeat_message import *
 from config import *
 from edgeServer.edgeServer import md5
 
-content_dict = {}
+content_dict = {1:'share.png'}
 
 def send_heartbeat():
 	while(True):
@@ -43,6 +44,35 @@ def send_heartbeat():
 		
 
 def serve_edge_server_helper(conn, addr):
+	global content_id
+	message = ContentRequestMessage(0, 0)
+	message.receive(conn)
+	# Get filename from file
+	if message.received == False:
+		return
+	
+	# Check if file is present in edge server
+	if message.content_id in content_dict:
+		filename = content_dict[message.content_id]
+                # before sending the file, send its details plus a checksum
+		file_size = int(os.stat(filename).st_size)
+		file_des = FileDescriptionMessage(message.content_id, file_size, filename, md5(filename))
+		file_des.send(conn)
+		f = open(filename, 'rb')
+		l = f.read(1018)
+		i = 0
+		while (l):
+			if message.seq_no <= i:
+				msg = ContentMessage(message.content_id, i)
+				msg.data = l
+				msg.packet_size = len(l)
+				msg.send(conn)
+				i += 1
+			l = f.read(1018)
+		f.close()
+	else:
+		# Get chunks of data from origin and send to client
+		pass
 	conn.close()
 
 def serve_edge_server():
@@ -128,9 +158,9 @@ def main():
 	t1 = Thread(target = send_heartbeat)
 	threads.append(t1)
 	t1.start()
-	# t2 = Thread(target = serve_edge_server);
-	# threads.append(t2)
-	# t2.start()
+	t2 = Thread(target = serve_edge_server);
+	threads.append(t2)
+	t2.start()
 	t3 = Thread(target = serve_content_provider)
 	threads.append(t3)
 	t3.start()
