@@ -8,9 +8,17 @@ import selectors
 sys.path.insert(0, "../")
 from messages.edge_heartbeat_message import *
 from messages.content_related_messages import *
+import hashlib
+import os
 
 EDGE_SERVER_PORT = 30001
 
+def md5(fname):
+ 	hash_md5 = hashlib.md5()
+ 	with open(fname, "rb") as f:
+  		for chunk in iter(lambda: f.read(4096), b""):
+   			hash_md5.update(chunk)
+ 	return hash_md5.digest()
 
 def send_heartbeat():
 	#print("Send hearbeat")
@@ -74,6 +82,10 @@ def serve_client(conn,addr):
 	# Check if file is present in edge server
 	if message.content_id in content_dict:
 		filename = content_dict[message.content_id]
+                # before sending the file, send its details plus a checksum
+		file_size = int(os.stat(filename).st_size)
+		file_des = FileDescriptionMessage(message.content_id, file_size, filename, md5(filename))
+		file_des.send(conn)
 		f = open(filename, 'rb')
 		l = f.read(1018)
 		i = 0
