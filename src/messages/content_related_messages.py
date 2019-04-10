@@ -5,7 +5,7 @@ from struct import *
 from .message import *
 from config import *
 
-FILENAME_MAX_LEN = 252
+FILENAME_MAX_LEN = 236
 MAX_DATA_PACKET_SIZE = 1018
 
 class ContentRequestMessage(Message):
@@ -35,34 +35,37 @@ class ContentRequestMessage(Message):
 			self.content_id = content_id
 			self.seq_no = seq_no
 
-class FileDetailsMessage(Message):
+class FileDescriptionMessage(Message):
 
 	"""
 	content_id (integer)
 	file_size (integer)
 	file_name (str)
+        md5_val (bytes)
 	"""
 
 	size = 256
 
-	def __init__(self, content_id, file_size, file_name):
+	def __init__(self, content_id, file_size, file_name, md5_val):
 		self.content_id = content_id
 		self.file_size = file_size
 		self.file_name = file_name
+		self.md5_val = md5_val
 
 	def send(self, soc):
-		soc.send(pack(str(FILENAME_MAX_LEN)+'sHH', self.file_name.encode(), self.file_size, self.content_id))
+		soc.send(pack(str(FILENAME_MAX_LEN)+'sHH16s', self.file_name.encode(), self.file_size, self.content_id, self.md5_val))
 
 	def receive(self, soc):
-		arr = soc.recv(FileDetailsMessage.size)
-		if len(arr) < FileDetailsMessage.size:
+		arr = soc.recv(FileDescriptionMessage.size)
+		if len(arr) < FileDescriptionMessage.size:
 			self.received = False
 		else:
 			self.received = True
-			file_name, file_size, content_id = unpack(str(FILENAME_MAX_LEN)+'sHH', arr)
-			self.file_name = file_name
+			file_name, file_size, content_id, md5_val = unpack(str(FILENAME_MAX_LEN)+'sHH16s', arr)
+			self.file_name = file_name.decode().strip()
 			self.file_size = file_size
 			self.content_id = content_id
+			self.md5_val = md5_val
 
 class ContentMessage(Message):
 
