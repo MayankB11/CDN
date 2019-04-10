@@ -75,15 +75,16 @@ def serve_client(conn,addr):
 	if message.content_id in content_dict:
 		filename = content_dict[message.content_id]
 		f = open(filename, 'rb')
-		l = f.read(1020)
+		l = f.read(1018)
 		i = 0
 		while (l):
 			if message.seq_no <= i:
 				msg = ContentMessage(message.content_id, i)
 				msg.data = l
+				msg.packet_size = len(l)
 				msg.send(conn)
 				i += 1
-			l = f.read(1020)
+			l = f.read(1018)
 		f.close()
 	else:
 		# Get chunks of data from origin and send to client
