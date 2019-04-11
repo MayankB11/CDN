@@ -64,7 +64,7 @@ def send_heartbeat():
 
 # Dictionary of files present at the edge server
 content_dict = {}
-lru_dict = {1:None}
+lru_dict = {}
 
 def fetch_and_send(conn,addr,content_id):
 	try: 
@@ -82,7 +82,7 @@ def fetch_and_send(conn,addr,content_id):
 	file_des.receive(s)
 	content_dict[file_des.content_id] = file_des.file_name
 	file_des.send(conn)
-	with open(file_des.file_name,'wb') as f:
+	with open('data/'+file_des.file_name,'wb') as f:
 		while True:
 			mes = ContentMessage(0,0)
 			print('receiving data...')
@@ -95,7 +95,7 @@ def fetch_and_send(conn,addr,content_id):
 			mes.send(conn)
 			f.write(data)
 		print("successfully received the file")
-	if md5(file_des.file_name) == file_des.md5_val:
+	if md5('data/'+file_des.file_name) == file_des.md5_val:
 		print("MD5 Matched!")
 	else:
 		print("MD5 didn't match")
@@ -114,10 +114,10 @@ def serve_client(conn,addr):
 	if message.content_id in content_dict:
 		filename = content_dict[message.content_id]
                 # before sending the file, send its details plus a checksum
-		file_size = int(os.stat(filename).st_size)
-		file_des = FileDescriptionMessage(message.content_id, file_size, filename, md5(filename))
+		file_size = int(os.stat('data/'+filename).st_size)
+		file_des = FileDescriptionMessage(message.content_id, file_size, filename, md5('data/'+filename))
 		file_des.send(conn)
-		f = open(filename, 'rb')
+		f = open('data/'+filename, 'rb')
 		l = f.read(1018)
 		i = 0
 		while (l):
