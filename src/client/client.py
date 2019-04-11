@@ -1,18 +1,20 @@
 import sys
+import selectors
+import socket
 
 sys.path.insert(0, "../")
 
 from messages.dns_request_message import *
 from messages.dns_response_message import *
-from config import *
+from messages.client_req_lb_message import *
+from messages.client_res_lb_message import *
 
-import selectors
-import socket
+from config import *
 
 ############# Get IP of load balancer from DNS
 
 s = socket.socket()         
-host = DNS_IP
+host = '127.0.0.1'
 port = DNS_PORT            
 
 s.connect((host, port))
@@ -24,6 +26,7 @@ msg.send(s)
 msg = DNSResponseMessage()
 msg.receive(s)
 ipblocks = msg.ipblocks
+print(ipblocks)
 
 s.close()
 
@@ -43,8 +46,13 @@ for host, port in ipblocks:
 if err_count == 2:
 	raise Exception("Load Balancer could not be reached!")
 
+msg = ClientReqLBMessage(1,1)
+msg.send(s)
 
+msg = ClientResLBMessage()
+msg.receive(s)
 
+print(msg.ip, msg.port)
 
 ############# Request file from redirected IP of edge server
 

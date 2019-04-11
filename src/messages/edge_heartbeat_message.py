@@ -8,7 +8,7 @@ from struct import *
 
 class EdgeHeartbeatMessage(Message):
 
-	signature = 'B'
+	signature = 'H'
 	size = calcsize(signature)
 
 	def __init__(self, loc = None):
@@ -27,6 +27,6 @@ class EdgeHeartbeatMessage(Message):
 				self.received = False
 			else:
 				self.received = True
-				self.loc = unpack(EdgeHeartbeatMessage.signature, arr)
+				self.loc = unpack(EdgeHeartbeatMessage.signature, arr)[0]
 		except:
 			self.received = False

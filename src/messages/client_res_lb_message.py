@@ -1,5 +1,5 @@
 import sys
-from struct import calcsize
+from struct import *
 
 sys.path.insert(0,"../")
 
@@ -23,12 +23,12 @@ class ClientResLBMessage(Message):
 		port = self.port
 		soc.send(pack(ClientResLBMessage.signature,ip[0],ip[1],ip[2],ip[3],port))
 
-	def recv(self,soc):
+	def receive(self,soc):
 		arr = soc.recv(ClientResLBMessage.size)
 		if len(arr) < ClientResLBMessage.size:
 			self.received = False
-		else
+		else:
 			self.received = True
-			ip[0], ip[1], ip[2], ip[3], port = unpack(ClientResLBMessage.signature,arr)
+			ip0, ip1, ip2, ip3, port = unpack(ClientResLBMessage.signature,arr)
 			self.ip = str(int.from_bytes(ip0, 'big')) + "." + str(int.from_bytes(ip1, 'big')) + "." + str(int.from_bytes(ip2, 'big')) + "." + str(int.from_bytes(ip3, 'big'))
 			self.port = port

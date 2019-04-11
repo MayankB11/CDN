@@ -31,7 +31,7 @@ def send_heartbeat():
 		return
 	
 	
-	host = socket.gethostname() # LB Primary
+	host = '127.0.0.1' # LB Primary
 	port = EDGE_HEARTBEAT_LISTENER_PORT
 
 	# To handle: what happens when LB Primary fails
@@ -52,7 +52,7 @@ def send_heartbeat():
 	
 		while(True):
 			print("Try to send heartbeat")
-			msg = EdgeHeartbeatMessage()
+			msg = EdgeHeartbeatMessage(1)
 			try:
 				msg.send(sock)
 			except:
@@ -73,7 +73,7 @@ def fetch_and_send(conn,addr,content_id):
 	except socket.error as err: 
 		print ("socket creation failed with error %s" %(err)) 
 	s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-	host = socket.gethostname()
+	host = '127.0.0.1'
 	port = ORIGIN_SERVER_PORT
 	s.connect((host, port))
 	message = ContentRequestMessage(content_id, 0)
@@ -148,7 +148,6 @@ def main():
 	print ("socket binded to %s" %(port)) 	
 	
 	s.listen(5)
-
 
 	threads = []
 	while True:

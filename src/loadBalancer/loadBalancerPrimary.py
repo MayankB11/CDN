@@ -8,8 +8,11 @@ import time
 sys.path.insert(0, "../")
 
 from config import *
+from messages.dns_request_message import *
 from messages.lb_heartbeat_message import *
 from messages.edge_heartbeat_message import *
+from messages.client_req_lb_message import *
+from messages.client_res_lb_message import *
 
 ####################################
 # Global tables and lock variables #
@@ -24,7 +27,7 @@ def heartBeat():
 	while(True):
 		sock = socket.socket()
 		sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-		host = socket.gethostname()
+		host = '127.0.0.1'
 		port = LB_HEARTBEAT_PORT
 		sock.bind((host, port))
 		sock.listen(1)
@@ -76,7 +79,7 @@ def receive_heartbeat(conn, addr):
 def edge_heartbeat_handler():
 	sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-	host = socket.gethostname()
+	host = '127.0.0.1'
 	port = EDGE_HEARTBEAT_LISTENER_PORT
 	sock.bind((host,port))
 	sock.listen(MAX_EDGE_SERVERS)
@@ -91,13 +94,16 @@ def edge_heartbeat_handler():
 	sock.close()
 
 def dist(loc_id1, loc_id2):
-	return (loc_id1[0]-loc_id2[0])**2 + (loc_id1[1]-loc_id2[1])**2
+	global LOCATION
+	print(LOCATION[loc_id1])
+	return (LOCATION[loc_id1][0]-LOCATION[loc_id2][0])**2 + (LOCATION[loc_id1][1]-LOCATION[loc_id2][1])**2
 
 def serve_client(conn, addr):
 	global edge_servers_available, edge_servers_availableL
 	msg = ClientReqLBMessage()
 	msg.receive(conn)
 	if msg.received:
+		print("Received reuqest: loc id", msg.loc_id, "from", addr)
 		loc_id = msg.loc_id
 		# look in edge_servers_available after acquiring lock
 		edge_servers_availableL.acquire()
@@ -123,11 +129,23 @@ if __name__ == "__main__":
 	t_edge_server_hb = Thread(target = edge_heartbeat_handler)
 	t_edge_server_hb.start()
 
+	# Register itself to DNS
+	s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)    
+	host = '127.0.0.1'
+	port = DNS_PORT
+	s.connect((host, port))
+
+	print("Adding IP to DNS")
+	msg = DNSRequestMessage(0, "www.google.com", LOAD_BALANCER_IP, LB_CLIENT_LISTEN_PORT)
+	msg.send(s)
+
+	s.close()
+
 	# Serve clients
 	sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-	host = socket.gethostname()
-	port = CLIENT_REQUEST_PORT
+	host = '127.0.0.1'
+	port = LB_CLIENT_LISTEN_PORT
 	sock.bind((host,port))
 	sock.listen(MAX_CLIENT_REQUESTS)
 

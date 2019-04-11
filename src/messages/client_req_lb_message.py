@@ -1,5 +1,5 @@
 import sys
-from struct import calcsize
+from struct import *
 
 sys.path.insert(0,"../")
 
@@ -9,7 +9,7 @@ from config import *
 
 class ClientReqLBMessage(Message):
 
-	signature = str(LOCATION_ID_MAX_LEN)+"s"+str(CONTENT_ID_MAX_LEN)+"s"
+	signature = "HH"
 	size = calcsize(signature)
 
 	def __init__(self,content_id = None,loc_id = None):
@@ -21,11 +21,11 @@ class ClientReqLBMessage(Message):
 		content_id = self.content_id
 		soc.send(pack(ClientReqLBMessage.signature,loc_id,content_id))
 
-	def recv(self,soc):
+	def receive(self,soc):
 		arr = soc.recv(ClientReqLBMessage.size)
 		if len(arr) < ClientReqLBMessage.size:
 			self.received = False
-		else
+		else:
 			self.received = True
 			loc_id, content_id = unpack(ClientReqLBMessage.signature,arr)
 			self.loc_id = loc_id

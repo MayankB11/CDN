@@ -51,6 +51,7 @@ def read(conn, mask):
 	if msg.received:
 		if msg.service_id == 0:
 			# add_entry
+			print("Adding entry:", msg.hostname, ",", (msg.ip,msg.port))
 			if msg.hostname in hostname_ip_map:
 				hostname_ip_map[msg.hostname].append((msg.ip, msg.port))
 			else:
@@ -73,7 +74,7 @@ def read(conn, mask):
 		conn.close()
 
 sock = socket.socket()
-host = DNS_IP
+host = '127.0.0.1'
 port = DNS_PORT
 sock.bind((host, port))
 sock.listen(DNS_MAX_LISTEN)
