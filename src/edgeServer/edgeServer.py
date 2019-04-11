@@ -12,6 +12,8 @@ import hashlib
 import os
 
 EDGE_SERVER_PORT = 30001
+EDGE_SERVER_STORAGE_CAPACITY = 10000000
+current_free_space = EDGE_SERVER_STORAGE_CAPACITY
 
 def md5(fname):
  	hash_md5 = hashlib.md5()
@@ -63,7 +65,11 @@ def send_heartbeat():
 
 
 # Dictionary of files present at the edge server
+
+# format : content_id: filename
 content_dict = {}
+
+# format : content_id : (time.time(), file_size)
 lru_dict = {}
 
 def fetch_and_send(conn,addr,content_id):
@@ -80,26 +86,42 @@ def fetch_and_send(conn,addr,content_id):
 	message.send(s)
 	file_des = FileDescriptionMessage(0, 0, '', 0)
 	file_des.receive(s)
-	content_dict[file_des.content_id] = file_des.file_name
-	file_des.send(conn)
-	with open('data/'+file_des.file_name,'wb') as f:
-		while True:
-			mes = ContentMessage(0,0)
-			print('receiving data...')
-			mes.receive(s)
-			print(mes.content_id) 
-			print(mes.seq_no)
-			data = mes.data
-			if not data:
-				break
-			mes.send(conn)
-			f.write(data)
-		print("successfully received the file")
-	if md5('data/'+file_des.file_name) == file_des.md5_val:
-		print("MD5 Matched!")
+	# now check if this file can be brought in or not:
+	if file_des.file_size >= EDGE_SERVER_STORAGE_CAPACITY:
+		# rather than storing this file, just send this file to the edge server
+		print("File too big!")
+		pass
 	else:
-		print("MD5 didn't match")
-	content_dict[content_id]=file_des.file_name
+		# this following can be used
+		# first check if the total free space currently available is less or not
+		while current_free_space < file_des.file_size:
+			# remove least recently used file
+			content_id_to_delete = min(lru_dict, key=lru_dict.get)
+			content_free_space += lru_dict[content_id_to_delete][1]
+			del lru_dict[content_id_to_delete]
+			os.remove('data/'+content_dict[content_id_to_delete])
+			del content_dict[content_id_to_delete]
+		content_dict[file_des.content_id] = file_des.file_name
+		lru_dict[file_des.content_id] = (time.time(), file_des.file_size)
+		file_des.send(conn)
+		with open('data/'+file_des.file_name,'wb') as f:
+			while True:
+				mes = ContentMessage(0,0)
+				print('receiving data...')
+				mes.receive(s)
+				print(mes.content_id) 
+				print(mes.seq_no)
+				data = mes.data
+				if not data:
+					break
+				mes.send(conn)
+				f.write(data)
+			print("successfully received the file")
+		if md5('data/'+file_des.file_name) == file_des.md5_val:
+			print("MD5 Matched!")
+		else:
+			print("MD5 didn't match")
+		content_dict[content_id]=file_des.file_name
 	s.close()
 
 def serve_client(conn,addr):
@@ -115,6 +137,7 @@ def serve_client(conn,addr):
 		filename = content_dict[message.content_id]
                 # before sending the file, send its details plus a checksum
 		file_size = int(os.stat('data/'+filename).st_size)
+		lru_dict[message.content_id] = (time.time(), file_size)
 		file_des = FileDescriptionMessage(message.content_id, file_size, filename, md5('data/'+filename))
 		file_des.send(conn)
 		f = open('data/'+filename, 'rb')
@@ -135,7 +158,6 @@ def serve_client(conn,addr):
 	conn.close()
 
 def main():	
-	
 	try: 
 		s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
 		print("Socket successfully created")
