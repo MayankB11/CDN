@@ -8,10 +8,10 @@ import selectors
 sys.path.insert(0, "../")
 from messages.edge_heartbeat_message import *
 from messages.content_related_messages import *
+from config import *
 import hashlib
 import os
 
-EDGE_SERVER_PORT = 30001
 EDGE_SERVER_STORAGE_CAPACITY = 10000000
 current_free_space = EDGE_SERVER_STORAGE_CAPACITY
 

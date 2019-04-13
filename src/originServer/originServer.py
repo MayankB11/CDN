@@ -18,7 +18,7 @@ from messages.origin_heartbeat_message import *
 from config import *
 from edgeServer.edgeServer import md5
 
-content_dict = {1:'share.png'}
+content_dict = {1:'export.pdf'}
 
 def send_heartbeat():
 	while(True):

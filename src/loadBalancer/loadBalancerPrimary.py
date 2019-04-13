@@ -136,7 +136,7 @@ if __name__ == "__main__":
 	s.connect((host, port))
 
 	print("Adding IP to DNS")
-	msg = DNSRequestMessage(0, "www.google.com", LOAD_BALANCER_IP, LB_CLIENT_LISTEN_PORT)
+	msg = DNSRequestMessage(0, "www.mycdn.com", LOAD_BALANCER_IP, LB_CLIENT_LISTEN_PORT)
 	msg.send(s)
 
 	s.close()
