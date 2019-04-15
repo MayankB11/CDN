@@ -18,7 +18,7 @@ from messages.origin_heartbeat_message import *
 from config import *
 from edgeServer.edgeServer import md5
 
-content_dict = {1:'export.pdf'}
+content_dict = {}
 
 def send_heartbeat():
 	while(True):
@@ -55,10 +55,11 @@ def serve_edge_server_helper(conn, addr):
 	if message.content_id in content_dict:
 		filename = content_dict[message.content_id]
                 # before sending the file, send its details plus a checksum
-		file_size = int(os.stat(filename).st_size)
-		file_des = FileDescriptionMessage(message.content_id, file_size, filename, md5(filename))
+		file_size = int(os.stat('data/'+filename).st_size)
+		print("filename: ",filename)
+		file_des = FileDescriptionMessage(message.content_id, file_size, filename, md5('data/'+filename))
 		file_des.send(conn)
-		f = open(filename, 'rb')
+		f = open('data/'+filename, 'rb')
 		l = f.read(1018)
 		i = 0
 		while (l):
@@ -110,7 +111,7 @@ def serve_content_provider_helper(c,addr):
 	print(file_des.content_id)
 	print(file_des.file_size)
 	content_dict[file_des.content_id] = file_des.file_name
-	with open(file_des.file_name,'wb') as f:
+	with open('data/'+file_des.file_name,'wb') as f:
 		while True:
 			mes = ContentMessage(0,0)
 			print('receiving data...')
@@ -122,7 +123,7 @@ def serve_content_provider_helper(c,addr):
 				break
 			f.write(data)
 		print("successfully received the file")
-	if md5(file_des.file_name) == file_des.md5_val:
+	if md5('data/'+file_des.file_name) == file_des.md5_val:
 		print("MD5 Matched!")
 	else:
 		print("MD5 didn't match")
@@ -153,7 +154,17 @@ def serve_content_provider():
 		t.join()
 	s.close()
 
+def popluate_content_dict():
+	global content_dict
+	files_list = os.listdir('data/')
+	i = 1
+	for filename in files_list:
+		print('Content id: ',i,'\tFilename: ',filename)
+		content_dict[i] = filename
+		i=i+1
+
 def main():
+	popluate_content_dict()
 	threads = []
 	t1 = Thread(target = send_heartbeat)
 	threads.append(t1)

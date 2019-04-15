@@ -44,7 +44,9 @@ class FileDescriptionMessage(Message):
         md5_val (bytes)
 	"""
 
-	size = 260
+	signature = 'H'+str(FILENAME_MAX_LEN)+'sQHH64s'
+	size = calcsize(signature)
+
 
 	def __init__(self, content_id, file_size, file_name, md5_val):
 		self.content_id = content_id
@@ -54,8 +56,7 @@ class FileDescriptionMessage(Message):
 
 	def send(self, soc):
 		print("Sending")
-		print(calcsize('H'+str(FILENAME_MAX_LEN)+'sQHH64s'))
-		soc.send(pack('H'+str(FILENAME_MAX_LEN)+'sQHH64s', len(self.file_name), self.file_name.encode(), self.file_size, self.content_id, len(self.md5_val), self.md5_val))
+		soc.send(pack(FileDescriptionMessage.signature, len(self.file_name), self.file_name.encode(), self.file_size, self.content_id, len(self.md5_val), self.md5_val))
 		print("Pack sent")
 
 	def receive(self, soc):
@@ -65,8 +66,7 @@ class FileDescriptionMessage(Message):
 		else:
 			self.received = True
 			print("Receiving")
-			print(calcsize('H' + str(FILENAME_MAX_LEN)+'sQHH64s'))
-			file_name_len, file_name, file_size, content_id, md5_len, md5_val = unpack('H' + str(FILENAME_MAX_LEN)+'sQHH64s', arr)
+			file_name_len, file_name, file_size, content_id, md5_len, md5_val = unpack(FileDescriptionMessage.signature, arr)
 			self.file_name = file_name.decode()[:file_name_len]
 			self.file_size = file_size
 			self.content_id = content_id
@@ -81,7 +81,8 @@ class ContentMessage(Message):
 	data (bytes)
 	"""
 
-	size = 1024
+	signature = 'H' + str(MAX_DATA_PACKET_SIZE) + 'sHH'
+	size = calcsize(signature)
 
 	def __init__(self, content_id, seq_no):
 		self.content_id = content_id
@@ -90,7 +91,7 @@ class ContentMessage(Message):
 		self.data = None
 
 	def send(self, soc):
-		soc.send(pack('H' + str(MAX_DATA_PACKET_SIZE) + 'sHH', self.content_id, self.data, self.packet_size, self.seq_no))
+		soc.send(pack(ContentMessage.signature, self.content_id, self.data, self.packet_size, self.seq_no))
 
 	def receive(self, soc):
 		arr = soc.recv(ContentMessage.size)
@@ -98,7 +99,7 @@ class ContentMessage(Message):
 			self.received = False
 		else:
 			self.received = True
-			content_id, data, packet_size, seq_no = unpack('H' + str(MAX_DATA_PACKET_SIZE) + 'sHH', arr)
+			content_id, data, packet_size, seq_no = unpack(ContentMessage.signature, arr)
 			self.content_id = content_id
 			self.seq_no = seq_no
 			self.data = data[:packet_size]

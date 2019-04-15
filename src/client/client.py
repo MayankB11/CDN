@@ -10,6 +10,7 @@ from messages.client_req_lb_message import *
 from messages.client_res_lb_message import *
 from messages.content_related_messages import *
 from config import *
+from edgeServer.edgeServer import md5
 
 ############# Get IP of load balancer from DNS
 
@@ -114,10 +115,21 @@ def requestFile(edgeIP,edgePort,content_id,seq_no=0):
 				break
 			f.write(data)
 	f.close()
+	soc.close()
+
+############# Verify file, close connections and show success
+	
+	if md5('rec_'+file_des.file_name)==file_des.md5_val:
+		print("File download success!")
+	else:
+		print("MD5 does not match")
+		## TODO What to do with the file then??? 
+
 	return -2
 
-print(requestFile(msg.ip, EDGE_SERVER_PORT ,1))
-############# Verify file, close connections and show success
+contentReq = input("Enter content id: ")
+print(requestFile(msg.ip, EDGE_SERVER_PORT ,contentReq))
+
 
 
 #############

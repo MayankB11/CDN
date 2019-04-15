@@ -47,7 +47,6 @@ def send_heartbeat():
 				# Should connect to secondary
 				print("Connected to LB Secondary")
 				break
-				pass
 			except:
 				print("Connection to LB failed")
 				break
@@ -84,8 +83,9 @@ def fetch_and_send(conn,addr,content_id):
 	s.connect((host, port))
 	message = ContentRequestMessage(content_id, 0)
 	message.send(s)
-	file_des = FileDescriptionMessage(0, 0, '', 0)
+	file_des = FileDescriptionMessage(0, 0, '', '')
 	file_des.receive(s)
+	print("File fetching: ",file_des.file_name)
 	# now check if this file can be brought in or not:
 	if file_des.file_size >= EDGE_SERVER_STORAGE_CAPACITY:
 		# rather than storing this file, just send this file to the edge server
@@ -104,6 +104,7 @@ def fetch_and_send(conn,addr,content_id):
 		content_dict[file_des.content_id] = file_des.file_name
 		lru_dict[file_des.content_id] = (time.time(), file_des.file_size)
 		file_des.send(conn)
+		print('data/'+file_des.file_name+"...........")
 		with open('data/'+file_des.file_name,'wb') as f:
 			while True:
 				mes = ContentMessage(0,0)
