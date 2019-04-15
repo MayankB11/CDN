@@ -124,6 +124,7 @@ def fetch_and_send(conn,addr,content_id,last_received_seq_no):
 			print("MD5 Matched!")
 		else:
 			print("MD5 didn't match")
+			os.remove('data/'+file_des.file_name)
 		content_dict[content_id]=file_des.file_name
 	s.close()
 

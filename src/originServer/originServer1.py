@@ -20,29 +20,6 @@ from edgeServer.edgeServer import md5
 
 content_dict = {}
 
-def send_heartbeat():
-	while(True):
-		sock = socket.socket()
-		sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-		host = socket.gethostname()
-		port = ORIGIN_HEARTBEAT_PORT
-		sock.bind((host, port))
-		sock.listen(1)
-		conn, addr = sock.accept()
-		print('Accepted', conn, 'from', addr)
-		print('Connected to backup Origin Server')
-
-		while(True):
-			print("Sent HeartBeat")
-			msg = OriginHeartbeatMessage()
-			try:
-				msg.send(conn)
-			except:
-				print("Connection to backup failed")
-				break
-			time.sleep(ORIGIN_HEARTBEAT_TIME)
-		
-
 def serve_edge_server_helper(conn, addr):
 	global content_id
 	message = ContentRequestMessage(0, 0)
@@ -169,7 +146,7 @@ def sync_origin_server():
 def main():
 	popluate_content_dict()
 	threads = []
-	t1 = Thread(target = send_heartbeat)
+	t1 = Thread(target = sync_origin_server)
 	threads.append(t1)
 	t1.start()
 	t2 = Thread(target = serve_edge_server);
@@ -178,10 +155,9 @@ def main():
 	t3 = Thread(target = serve_content_provider)
 	threads.append(t3)
 	t3.start()
-	t4 = Thread(target = sync_origin_server)
-	threads.append(t4)
-	t4.start()
+	
 	for t in threads:
 		t.join()
+
 if __name__ == '__main__':
 	main()
