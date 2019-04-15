@@ -105,7 +105,7 @@ def serve_edge_server():
 
 def serve_content_provider_helper(c,addr):
 	global content_dict
-	file_des = FileDescriptionMessage(0, 0, '', 0)
+	file_des = FileDescriptionMessage(0, 0, '', '')
 	file_des.receive(c)
 	print(file_des.file_name)
 	print(file_des.content_id)
@@ -163,6 +163,9 @@ def popluate_content_dict():
 		content_dict[i] = filename
 		i=i+1
 
+def sync_origin_server():
+	pass
+
 def main():
 	popluate_content_dict()
 	threads = []
@@ -175,6 +178,9 @@ def main():
 	t3 = Thread(target = serve_content_provider)
 	threads.append(t3)
 	t3.start()
+	t4 = Thread(target = sync_origin_server)
+	threads.append(t4)
+	t4.start()
 	for t in threads:
 		t.join()
 if __name__ == '__main__':

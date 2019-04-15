@@ -60,10 +60,18 @@ def check_and_run_origin():
 		t = Thread(target=origin_primary)
 		t.start()
 
-
+def popluate_content_dict():
+	global content_dict
+	files_list = os.listdir('data/')
+	i = 1
+	for filename in files_list:
+		print('Content id: ',i,'\tFilename: ',filename)
+		content_dict[i] = filename
+		i=i+1
 
 def main():
 	global state
+	popluate_content_dict()
 	while(True):
 
 		sock = socket.socket()

@@ -15,7 +15,7 @@ class ContentRequestMessage(Message):
 	seq_no (integer)
 
 	"""
-	signature = 'HH'
+	signature = 'HQ'
 	size = calcsize(signature)
 
 	def __init__(self, content_id, seq_no):
@@ -81,7 +81,7 @@ class ContentMessage(Message):
 	data (bytes)
 	"""
 
-	signature = 'H' + str(MAX_DATA_PACKET_SIZE) + 'sHH'
+	signature = 'H' + str(MAX_DATA_PACKET_SIZE) + 'sHQ'
 	size = calcsize(signature)
 
 	def __init__(self, content_id, seq_no):

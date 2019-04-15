@@ -12,7 +12,7 @@ from config import *
 import hashlib
 import os
 
-EDGE_SERVER_STORAGE_CAPACITY = 10000000
+EDGE_SERVER_STORAGE_CAPACITY = 10000000000
 current_free_space = EDGE_SERVER_STORAGE_CAPACITY
 
 def md5(fname):
@@ -71,7 +71,7 @@ content_dict = {}
 # format : content_id : (time.time(), file_size)
 lru_dict = {}
 
-def fetch_and_send(conn,addr,content_id):
+def fetch_and_send(conn,addr,content_id,last_received_seq_no):
 	try: 
 		s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
 		print("Socket successfully created")
@@ -115,8 +115,10 @@ def fetch_and_send(conn,addr,content_id):
 				data = mes.data
 				if not data:
 					break
-				mes.send(conn)
 				f.write(data)
+				if last_received_seq_no>mes.seq_no:
+					continue
+				mes.send(conn)
 			print("successfully received the file")
 		if md5('data/'+file_des.file_name) == file_des.md5_val:
 			print("MD5 Matched!")
@@ -142,8 +144,9 @@ def serve_client(conn,addr):
 		file_des = FileDescriptionMessage(message.content_id, file_size, filename, md5('data/'+filename))
 		file_des.send(conn)
 		f = open('data/'+filename, 'rb')
+		f.seek(message.seq_no*1018)
 		l = f.read(1018)
-		i = 0
+		i = message.seq_no
 		while (l):
 			if message.seq_no <= i:
 				msg = ContentMessage(message.content_id, i)
@@ -155,7 +158,7 @@ def serve_client(conn,addr):
 		f.close()
 	else:
 		# Get chunks of data from origin and send to client
-		fetch_and_send(conn,addr,message.content_id)
+		fetch_and_send(conn,addr,message.content_id,message.seq_no)
 	conn.close()
 
 def main():	

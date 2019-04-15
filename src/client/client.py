@@ -1,6 +1,7 @@
 import sys
 import selectors
 import socket
+import os
 
 sys.path.insert(0, "../")
 
@@ -80,10 +81,10 @@ def requestFile(edgeIP,edgePort,content_id,seq_no=0):
 		return -1
 	
 	last_seq_number_recv = -1
-	message = ContentRequestMessage(1, 0)
+	message = ContentRequestMessage(content_id, seq_no)
 	message.send(soc)
 
-	file_des = FileDescriptionMessage(0, 0, '', 0)
+	file_des = FileDescriptionMessage(0, 0, '', '')
 	
 	try:
 		file_des.receive(soc)
@@ -98,8 +99,10 @@ def requestFile(edgeIP,edgePort,content_id,seq_no=0):
 	with open('rec_' + file_des.file_name, 'wb') as f:
 		print('file opened')
 		print("Content ID: ",file_des.content_id)
+		if seq_no!=0:
+			f.seek(seq_no*1018)
 		while True:
-			msg = ContentMessage(1, 0)
+			msg = ContentMessage(content_id, seq_no)
 
 			try:
 				msg.receive(soc)
@@ -110,7 +113,7 @@ def requestFile(edgeIP,edgePort,content_id,seq_no=0):
 			print("Sequence no: ",msg.seq_no)
 			last_seq_number_recv = msg.seq_no
 			data = msg.data
-			# print(type(data))
+			# print(len(data))
 			if not data:
 				break
 			f.write(data)
@@ -123,13 +126,28 @@ def requestFile(edgeIP,edgePort,content_id,seq_no=0):
 		print("File download success!")
 	else:
 		print("MD5 does not match")
+		os.remove('rec_'+file_des.file_name)
+		print("Try downloading again")
 		## TODO What to do with the file then??? 
 
 	return -2
 
-contentReq = input("Enter content id: ")
-print(requestFile(msg.ip, EDGE_SERVER_PORT ,contentReq))
-
+while True:
+	contentreq = input("Enter content id: ")
+	try:
+		contentReq = int(contentreq)
+	except:
+		print("Enter only numbers.")
+		continue
+	if(contentReq<=0):
+		print("Content id cannot be less than 1")
+		continue
+	while True:
+		seqNo = requestFile(msg.ip, EDGE_SERVER_PORT ,contentReq)
+		if seqNo != -2:
+			seqNo = requestFile(msg.ip, EDGE_SERVER_PORT ,contentReq, seqNo+1)
+		else:
+			break
 
 
 #############
