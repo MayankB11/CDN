@@ -101,18 +101,22 @@ def requestFile(edgeIP,edgePort,content_id,seq_no=0):
 		print("Content ID: ",file_des.content_id)
 		if seq_no!=0:
 			f.seek(seq_no*1018)
+		file_size = file_des.file_size
+		total_received=0
 		while True:
 			msg = ContentMessage(content_id, seq_no)
 
 			try:
-				msg.receive(soc)
+				msg.receive(soc,file_size,total_received)
 			except Exception as e:
 				print("Last Sequence Number received: ",last_seq_number_recv)
+				print(e)
 				return last_seq_number_recv
 			
 			print("Sequence no: ",msg.seq_no)
 			last_seq_number_recv = msg.seq_no
 			data = msg.data
+			total_received+=len(data)
 			# print(len(data))
 			if not data:
 				break
@@ -146,6 +150,7 @@ while True:
 		seqNo = requestFile(msg.ip, EDGE_SERVER_PORT ,contentReq)
 		if seqNo != -2:
 			## TO DO get new edge server from load balancer
+			input("Press enter!")
 			seqNo = requestFile(msg.ip, EDGE_SERVER_PORT ,contentReq, seqNo+1)
 		else:
 			break

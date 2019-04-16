@@ -1,5 +1,5 @@
 import sys
-
+import time
 from struct import *
 
 from .message import *
@@ -23,7 +23,8 @@ class ContentRequestMessage(Message):
 		self.seq_no = seq_no
 
 	def send(self, soc):
-		soc.send(pack(ContentRequestMessage.signature, self.content_id, self.seq_no))
+		print("Content Request Size: ",ContentRequestMessage.size)
+		print("Seq No: ",self.seq_no,"\tBytes sent: ",soc.send(pack(ContentRequestMessage.signature, self.content_id, self.seq_no)))
 
 	def receive(self, soc):
 		arr = soc.recv(ContentRequestMessage.size)
@@ -44,7 +45,7 @@ class FileDescriptionMessage(Message):
         md5_val (bytes)
 	"""
 
-	signature = 'H'+str(FILENAME_MAX_LEN)+'sQHH64s'
+	signature = 'H'+str(FILENAME_MAX_LEN)+'sQHH128s'
 	size = calcsize(signature)
 
 
@@ -91,15 +92,26 @@ class ContentMessage(Message):
 		self.data = None
 
 	def send(self, soc):
-		soc.send(pack(ContentMessage.signature, self.content_id, self.data, self.packet_size, self.seq_no))
+		print("Content Message size: ",ContentMessage.size,"\tSeq No: ",self.seq_no)
+		print("Bytes sent: ",soc.send(pack(ContentMessage.signature, self.content_id, self.data, self.packet_size, self.seq_no)))
+		# time.sleep(0.05)
 
-	def receive(self, soc):
-		arr = soc.recv(ContentMessage.size)
-		if len(arr) < ContentMessage.size:
+	def receive(self, soc,file_size,total_received):
+		recv_size = 0
+		arr = bytearray()
+		while recv_size != ContentMessage.size and recv_size+total_received!=file_size:
+			temp = soc.recv(ContentMessage.size-recv_size)
+			arr = arr+temp
+			recv_size+=len(temp)
+			# print(recv_size)
+		
+		# print(len(arr))
+		if len(arr) < ContentMessage.size and recv_size+total_received!=file_size:
 			self.received = False
 		else:
 			self.received = True
-			content_id, data, packet_size, seq_no = unpack(ContentMessage.signature, arr)
+			temp = bytearray(ContentMessage.size-recv_size)
+			content_id, data, packet_size, seq_no = unpack(ContentMessage.signature,arr+temp)
 			self.content_id = content_id
 			self.seq_no = seq_no
 			self.data = data[:packet_size]

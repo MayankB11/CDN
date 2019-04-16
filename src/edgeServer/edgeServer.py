@@ -20,7 +20,7 @@ def md5(fname):
  	with open(fname, "rb") as f:
   		for chunk in iter(lambda: f.read(4096), b""):
    			hash_md5.update(chunk)
- 	return hash_md5.digest()
+ 	return hash_md5.digest()[:16]
 
 def send_heartbeat():
 	#print("Send hearbeat")
@@ -77,7 +77,7 @@ def send_heartbeat():
 # Dictionary of files present at the edge server
 
 # format : content_id: filename
-content_dict = {}
+content_dict = {1:"export.pdf",2:"DFS.pdf"}
 
 # format : content_id : (time.time(), file_size)
 lru_dict = {}
