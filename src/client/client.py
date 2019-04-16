@@ -145,6 +145,7 @@ while True:
 	while True:
 		seqNo = requestFile(msg.ip, EDGE_SERVER_PORT ,contentReq)
 		if seqNo != -2:
+			## TO DO get new edge server from load balancer
 			seqNo = requestFile(msg.ip, EDGE_SERVER_PORT ,contentReq, seqNo+1)
 		else:
 			break
