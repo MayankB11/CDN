@@ -33,7 +33,7 @@ def send_heartbeat():
 		return
 	
 	
-	host = '127.0.0.1' # LB Primary
+	host = LOAD_BALANCER_PRIMARY_IP # LB Primary
 	port = EDGE_HEARTBEAT_LISTENER_PORT
 
 	# To handle: what happens when LB Primary fails
@@ -45,10 +45,21 @@ def send_heartbeat():
 		except:
 			try:
 				# Should connect to secondary
-				print("Connected to LB Secondary")
-				break
+				print("Couldn't connect to primary LB")
+				host = LOAD_BALANCER_SECONDARY_IP
+				sock.connect((host,port))
+				print("Connecting to LB Secondary")
+				print("Try to send heartbeat")
+				msg = EdgeHeartbeatMessage(1)
+				try:
+					msg.send(sock)
+					time.sleep(EDGE_HEARTBEAT_TIME)
+				except:
+					print("Connection to load balancer secondary failed")
+					time.sleep(EDGE_HEARTBEAT_TIME)
+					continue
 			except:
-				print("Connection to LB failed")
+				print("Connection to both LBs failed")
 				break
 	
 		while(True):
