@@ -43,7 +43,7 @@ class State(Enum):
 def clientReqListener():
 	global state
 	sock = socket.socket()
-	host = '127.0.0.1'  # do we need to transfer this to config.py??????????
+	host = LOAD_BALANCER_SECONDARY_IP  # do we need to transfer this to config.py??????????
 	port = LB_CLIENT_LISTEN_PORT_BACKUP
 	sock.bind((host, port))
 	sock.listen(MAX_CLIENT_REQUESTS)
@@ -166,7 +166,7 @@ def edge_heartbeat_handler():
 	sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 	
-	host = '127.0.0.1'
+	host = LOAD_BALANCER_SECONDARY_IP
 	port = LB2_HEARTBEAT_LISTENER_PORT
 	
 	sock.bind((host,port))
@@ -192,13 +192,19 @@ if __name__ == "__main__":
 	t_edge_server_hb.start()
 
 	s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)    
-	host = '127.0.0.1'
+	host = DNS_IP
 	port = DNS_PORT
-	s.connect((host, port))
+	try:
+		s.connect((host, port))
+	except Exception as e:
+		print(e)
 
 	print("Adding IP to DNS")
-	msg = DNSRequestMessage(0, "www.mycdn.com", LOAD_BALANCER_PRIMARY_IP, LB_CLIENT_LISTEN_PORT_BACKUP)
-	msg.send(s)
+	msg = DNSRequestMessage(0, "www.mycdn.com", LOAD_BALANCER_SECONDARY_IP, LB_CLIENT_LISTEN_PORT_BACKUP)
+	try:
+		msg.send(s)
+	except Exception as e:
+		print(e)
 
 	s.close()
 
@@ -206,7 +212,7 @@ if __name__ == "__main__":
 
 		sock = socket.socket()
 		
-		host = '127.0.0.1'
+		host = LOAD_BALANCER_PRIMARY_IP
 		port = LB_HEARTBEAT_PORT
 		
 		print("Trying to connect to primary")

@@ -166,7 +166,8 @@ while True:
 		print("Content id cannot be less than 1")
 		continue
 	seqNo = -1
-	n_msg = ClientReqLBMessage(contentReq,seqNo+1)
+	location_id = sys.argv[1]
+	n_msg = ClientReqLBMessage(contentReq,location_id)
 	prev_edge_ip = n_msg.prev_edge_ip
 	while True:
 		# seqNo = requestFile(msg.ip, EDGE_SERVER_PORT ,contentReq)
@@ -175,7 +176,7 @@ while True:
 			s, err = connectLB(ipblocks)
 			if err==0:
 				input("Load Balancer could not be reached!")
-			n_msg = ClientReqLBMessage(contentReq,seqNo+1,prev_edge_ip)
+			n_msg = ClientReqLBMessage(contentReq,location_id,prev_edge_ip)
 			try:
 				input("Press enter to request new edge server")
 				n_msg.send(s)
@@ -187,7 +188,7 @@ while True:
 					print("No edge servers available.")
 					input("Press enter to try again!")
 					continue
-				
+
 				seqNo = requestFile(n_msg.ip, EDGE_SERVER_PORT ,contentReq, seqNo+1)
 			except:
 				print("Error communicating with LB")

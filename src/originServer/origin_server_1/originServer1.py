@@ -69,7 +69,7 @@ def synchronizer():
 	while(True):
 		sock = socket.socket()
 		sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-		host = socket.gethostname()
+		host = ORIGIN_SERVER_IP_1
 		port = ORIGIN_SYNCHRONIZER_PORT_1
 		sock.bind((host, port))
 		sock.listen(1)
@@ -127,7 +127,7 @@ def synchronize_receive():
 	except socket.error as err:
 		print('Socket creation failed with error %s', err)
 		return
-	host = socket.gethostname()
+	host = ORIGIN_SERVER_IP_2
 	port = ORIGIN_SYNCHRONIZER_PORT_2
 
 	while(True):
