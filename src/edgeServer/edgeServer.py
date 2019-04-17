@@ -20,9 +20,9 @@ def md5(fname):
  	with open(fname, "rb") as f:
   		for chunk in iter(lambda: f.read(4096), b""):
    			hash_md5.update(chunk)
- 	return hash_md5.digest()[:16]
+ 	return hash_md5.digest()
 
-def send_heartbeat():
+def send_heartbeat_primary():
 	#print("Send hearbeat")
 	try:
 		sock = socket.socket()
@@ -34,7 +34,7 @@ def send_heartbeat():
 	
 	
 	host = LOAD_BALANCER_PRIMARY_IP # LB Primary
-	port = EDGE_HEARTBEAT_LISTENER_PORT
+	port = LB1_HEARTBEAT_LISTENER_PORT
 
 	# To handle: what happens when LB Primary fails
 	while True:
@@ -43,24 +43,8 @@ def send_heartbeat():
 			sock.connect((host, port))
 			print("Connected to LB Primary")
 		except:
-			try:
-				# Should connect to secondary
-				print("Couldn't connect to primary LB")
-				host = LOAD_BALANCER_SECONDARY_IP
-				sock.connect((host,port))
-				print("Connecting to LB Secondary")
-				print("Try to send heartbeat")
-				msg = EdgeHeartbeatMessage(1)
-				try:
-					msg.send(sock)
-					time.sleep(EDGE_HEARTBEAT_TIME)
-				except:
-					print("Connection to load balancer secondary failed")
-					time.sleep(EDGE_HEARTBEAT_TIME)
-					continue
-			except:
-				print("Connection to both LBs failed")
-				break
+			print('Load balancer primary seems to be down. Trying to reconnect in a second.')
+			time.sleep(1)
 	
 		while(True):
 			print("Try to send heartbeat")
@@ -74,10 +58,45 @@ def send_heartbeat():
 	sock.close()
 
 
+
+def send_heartbeat_secondary():
+	#print("Send hearbeat")
+	try:
+		sock = socket.socket()
+		sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+		print('Socket successfully created')
+	except socket.error as err:
+		print('Socket creation failed with error %s', err)
+		return
+	
+	
+	host = LOAD_BALANCER_SECONDARY_IP # LB Primary
+	port = LB2_HEARTBEAT_LISTENER_PORT
+
+	# To handle: what happens when LB Primary fails
+	while True:
+		
+		try:
+			sock.connect((host, port))
+			print("Connected to LB Secondary")
+		except:
+			print('Load balancer secondary seems to be down. Trying to reconnect in a second.')
+			time.sleep(1)
+	
+		while(True):
+			print("Try to send heartbeat")
+			msg = EdgeHeartbeatMessage(1)
+			try:
+				msg.send(sock)
+			except:
+				print("Connection to load balancer secondary failed")
+				break
+			time.sleep(EDGE_HEARTBEAT_TIME)
+	sock.close()
 # Dictionary of files present at the edge server
 
 # format : content_id: filename
-content_dict = {1:"export.pdf",2:"DFS.pdf"}
+content_dict = {}
 
 # format : content_id : (time.time(), file_size)
 lru_dict = {}
@@ -202,8 +221,11 @@ def main():
 
 if __name__ == '__main__':
 	Threads = []
-	t = Thread(target = send_heartbeat)
-	t.start()
+	t1 = Thread(target = send_heartbeat_primary)
+	t1.start()
+	t2 = Thread(target = send_heartbeat_secondary)
+	t2.start()
 	main()
-	t.join()
+	t1.join()
+	t2.join()
 

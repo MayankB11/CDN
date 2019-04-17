@@ -31,6 +31,7 @@ def heartBeat():
 		port = LB_HEARTBEAT_PORT
 		sock.bind((host, port))
 		sock.listen(1)
+		print("LB-LB Heartbeat socket binded")
 		conn, addr = sock.accept()
 		print('Accepted', conn, 'from', addr)
 		print('Connected to backup load balancer')
@@ -80,7 +81,7 @@ def edge_heartbeat_handler():
 	sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 	host = '127.0.0.1'
-	port = EDGE_HEARTBEAT_LISTENER_PORT
+	port = LB1_HEARTBEAT_LISTENER_PORT
 	sock.bind((host,port))
 	sock.listen(MAX_EDGE_SERVERS)
 	
