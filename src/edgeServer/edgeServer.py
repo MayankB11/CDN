@@ -128,87 +128,133 @@ def send_heartbeat_secondary():
 			time.sleep(EDGE_HEARTBEAT_TIME)
 	sock.close()
 
+def connectOrigin(ipblocks):
+
+	"""
+	Method to connect to LBs
+	IP blocks contains the DNS response
+	"""
+
+	err_count = 0
+
+	for host, port in ipblocks:
+		s = socket.socket()
+		try:
+			print("Connecting ",host,":",port)
+			s.connect((host, port))
+			print("Connected ",host,":",port)
+			break
+		except socket.error:
+			err_count += 1
+			print("Connection failed ",host,":",port)
+			continue
+
+	if err_count == 2:
+		print("Origin server could not be reached!")
+		return s,0
+	else:
+		print("Connection established to the origin server")
+		return s,1
 
 def fetch_and_send(conn,addr,content_id,last_received_seq_no):
 	
-	try: 
-		s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
-		print("Socket successfully created")
-	except socket.error as err: 
-		print ("socket creation failed with error %s" %(err)) 
+	# try:  
+	# 	s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
+	# 	print("Socket successfully created")
+	# except socket.error as err: 
+	# 	print ("socket creation failed with error %s" %(err)) 
 	
-	s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-	
-	host = '127.0.0.1'
-	port = ORIGIN_SERVER_PORT_1
-	
-	s.connect((host, port))
-	
-	message = ContentRequestMessage(content_id, 0)
-	message.send(s)
-	
-	file_des = FileDescriptionMessage(0, 0, '', bytearray())
-	file_des.receive(s)
-	
-	print("File fetching: ",file_des.file_name)
-	# now check if this file can be brought in or not:
-	if file_des.file_size >= EDGE_SERVER_STORAGE_CAPACITY:
-		# rather than storing this file, just send this file to the edge server
-		print("File too big!")
-		pass
-	
-	else:
-		# this following can be used
-		# first check if the total free space currently available is less or not
-		while current_free_space < file_des.file_size:
-			# remove least recently used file
-			content_id_to_delete = min(lru_dict, key=lru_dict.get)
-			content_free_space += lru_dict[content_id_to_delete][1]
-			
-			del lru_dict[content_id_to_delete]
-			os.remove('data/'+content_dict[content_id_to_delete])
-			del content_dict[content_id_to_delete]
+	# s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+	ipblocks = [(ORIGIN_SERVER_IP_1,ORIGIN_SERVER_PORT_1),(ORIGIN_SERVER_IP_2,ORIGIN_SERVER_PORT_2)]
+	flag = 0 # 0 is default, 1 is finished, -1 is not finished
+	while True:
+
+		s,err = connectOrigin(ipblocks)
+		if err == 0:
+			raise Exception("Load Balancer could not be reached!")
+
+		# s.connect((host, port))
 		
-		content_dict[file_des.content_id] = file_des.file_name
-		lru_dict[file_des.content_id] = (time.time(), file_des.file_size)
+		message = ContentRequestMessage(content_id, 0)
+		message.send(s)
 		
-		file_des.send(conn)
+		file_des = FileDescriptionMessage(0, 0, '', bytearray())
+		file_des.receive(s)
 		
-		print('data/'+file_des.file_name+"...........")
-		with open('data/'+file_des.file_name,'wb') as f:
-			recv_size = 0 
-			file_size = file_des.file_size
-			while True:
-				mes = ContentMessage(0,0)
-				print('receiving data...')
-				
-				mes.receive(s,file_size,recv_size)
-				print(mes.content_id) 
-				print(mes.seq_no)
-				
-				data = mes.data
-				if not data:
-					break
-
-				f.write(data)
-				recv_size+=len(data)
-				if last_received_seq_no>mes.seq_no:
-					continue
-
-				mes.send(conn)
-
-			print("successfully received the file")
-
-		if md5('data/'+file_des.file_name) == file_des.md5_val:
-			print("MD5 Matched!")
-
+		print("File fetching: ",file_des.file_name)
+		# now check if this file can be brought in or not:
+		if file_des.file_size >= EDGE_SERVER_STORAGE_CAPACITY:
+			# rather than storing this file, just send this file to the edge server
+			print("File too big!")
+			pass
+		
 		else:
-			print("MD5 didn't match")
-			os.remove('data/'+file_des.file_name)
+			# this following can be used
+			# first check if the total free space currently available is less or not
+			while current_free_space < file_des.file_size:
+				# remove least recently used file
+				content_id_to_delete = min(lru_dict, key=lru_dict.get)
+				content_free_space += lru_dict[content_id_to_delete][1]
+				
+				del lru_dict[content_id_to_delete]
+				os.remove('data/'+content_dict[content_id_to_delete])
+				del content_dict[content_id_to_delete]
+			
+			content_dict[file_des.content_id] = file_des.file_name
+			lru_dict[file_des.content_id] = (time.time(), file_des.file_size)
+			if flag != -1:
+				file_des.send(conn)
+			flag = 0
+			print('data/'+file_des.file_name+"...........")
+			
+			with open('data/'+file_des.file_name,'wb') as f:
+			
+				recv_size = 0 
+				file_size = file_des.file_size
+				req_seq = 0
+				while True:
+					mes = ContentMessage(0,0)
+					print('receiving data...')
+					try:
+						mes.receive(s,file_size,recv_size)
+					except:				
+						if mes.received == False:
+							print('Yo')
+							flag = -1
+							last_received_seq_no = req_seq
+							break
 
-		content_dict[content_id]=file_des.file_name
-	
-	s.close()
+					print(mes.content_id) 
+					print(mes.seq_no)
+					req_seq = mes.seq_no+1
+
+					data = mes.data
+					if not data:
+						break
+
+					f.write(data)
+					recv_size+=len(data)
+					if last_received_seq_no>mes.seq_no:
+						continue
+
+					mes.send(conn)
+				if flag == -1:
+					continue
+				flag = 1
+				print("successfully received the file")
+
+			if md5('data/'+file_des.file_name) == file_des.md5_val:
+				print("MD5 Matched!")
+
+			else:
+				print("MD5 didn't match")
+				os.remove('data/'+file_des.file_name)
+
+			content_dict[content_id]=file_des.file_name
+		
+		s.close()
+		if flag == 1:
+			break
 
 def serve_client(conn,addr):
 	

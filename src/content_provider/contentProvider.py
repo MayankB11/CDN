@@ -22,7 +22,7 @@ def main():
 		print('Socket creation failed with error %s', err)
 		return
 	
-	host = socket.gethostname() # LB Primary
+	host = ORIGIN_SERVER_IP_1 # LB Primary
 	port = ORIGIN_CONTENT_PROVIDER_PORT_1
 
 	try:

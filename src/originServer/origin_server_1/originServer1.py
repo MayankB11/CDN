@@ -50,7 +50,7 @@ def dump():
 def load():
 	global content_dict
 	f = open(ORIGIN_METADATA_FILENAME, 'rb')
-	content_dict = pickle.load(f)
+	content_dict =	 pickle.load(f)
 	f.close()
 
 def print_dict():
@@ -230,6 +230,9 @@ def serve_edge_server_helper(conn, addr):
 		l = f.read(1018)
 		i = 0
 		while (l):
+			# if i == 10:
+			# 	print('Hi')
+			# 	exit()
 			if message.seq_no <= i:
 				msg = ContentMessage(message.content_id, i)
 				msg.data = l
