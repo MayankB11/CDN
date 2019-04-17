@@ -174,7 +174,7 @@ while True:
 			## TO DO get new edge server from load balancer
 			s, err = connectLB(ipblocks)
 			if err==0:
-				raise Exception("Load Balancer could not be reached!")
+				input("Load Balancer could not be reached!")
 			n_msg = ClientReqLBMessage(contentReq,seqNo+1,prev_edge_ip)
 			try:
 				input("Press enter to request new edge server")
@@ -187,11 +187,12 @@ while True:
 					print("No edge servers available.")
 					input("Press enter to try again!")
 					continue
+				
 				seqNo = requestFile(n_msg.ip, EDGE_SERVER_PORT ,contentReq, seqNo+1)
 			except:
 				print("Error communicating with LB")
 				input("Press enter to request another/same file!")
-				break
+				# break
 			s.close()
 		else:
 			break

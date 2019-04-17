@@ -28,8 +28,26 @@ n_clients_l = Lock()
 # Dictionary of files present at the edge server
 # format : content_id: filename
 content_dict = {}
+content_dict_l = Lock()
 # format : content_id : (time.time(), file_size)
 lru_dict = {}
+lru_dict_l = Lock()
+
+def dumpContentDict():
+	global content_dict
+	content_dict_l.acquire()
+	f = open(EDGE_CONTENT_DICT_FILENAME, 'wb')
+	pickle.dump(content_dict, f)
+	content_dict.release()
+	f.close()
+
+def loadContentDict():
+	global content_dict
+	f = open(EDGE_CONTENT_DICT_FILENAME, 'rb')
+	content_dict_l.acquire()
+	content_dict = pickle.load(f)
+	content_dict_l.release()
+	f.close()
 
 def md5(fname):
  	
@@ -166,11 +184,15 @@ def fetch_and_send(conn,addr,content_id,last_received_seq_no):
 			content_free_space += lru_dict[content_id_to_delete][1]
 			
 			del lru_dict[content_id_to_delete]
+			content_dict_l.acquire()
 			os.remove('data/'+content_dict[content_id_to_delete])
 			del content_dict[content_id_to_delete]
+			content_dict_l.release()
 		
+		content_dict_l.acquire()
 		content_dict[file_des.content_id] = file_des.file_name
 		lru_dict[file_des.content_id] = (time.time(), file_des.file_size)
+		content_dict_l.release()
 		
 		file_des.send(conn)
 		
@@ -206,7 +228,9 @@ def fetch_and_send(conn,addr,content_id,last_received_seq_no):
 			print("MD5 didn't match")
 			os.remove('data/'+file_des.file_name)
 
+		content_dict_l.acquire()
 		content_dict[content_id]=file_des.file_name
+		content_dict_l.release()
 	
 	s.close()
 
@@ -236,10 +260,11 @@ def serve_client(conn,addr):
 		file_des.send(conn)
 		
 		f = open('data/'+filename, 'rb')
-		f.seek(message.seq_no*1018)
+		# f.seek(message.seq_no*1018)
 		
 		l = f.read(1018)
-		i = message.seq_no
+		i = 0
+		last_received_seq_no = message.seq_no
 		
 		while (l):
 			if message.seq_no <= i:
@@ -249,7 +274,8 @@ def serve_client(conn,addr):
 				msg.packet_size = len(l)
 				msg.send(conn)
 
-				i += 1
+			i += 1
+
 			l = f.read(1018)
 		
 		f.close()
