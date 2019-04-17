@@ -49,8 +49,10 @@ def dump():
 
 def load():
 	global content_dict
+	if not os.path.isfile(ORIGIN_METADATA_FILENAME):
+		return
 	f = open(ORIGIN_METADATA_FILENAME, 'rb')
-	content_dict = pickle.load(f)
+	content_dict =	 pickle.load(f)
 	f.close()
 
 def print_dict():
@@ -230,6 +232,9 @@ def serve_edge_server_helper(conn, addr):
 		l = f.read(1018)
 		i = 0
 		while (l):
+			# if i == 10:
+			# 	print('Hi')
+			# 	exit()
 			if message.seq_no <= i:
 				msg = ContentMessage(message.content_id, i)
 				msg.data = l
@@ -311,6 +316,7 @@ def serve_content_provider_helper(c,addr):
 	content_dictL.release()
 	print_dict()
 	c.close()
+	print('closed')
 
 def serve_content_provider():
 	try: 
@@ -327,14 +333,15 @@ def serve_content_provider():
 	s.listen(5)
 	threads = []
 	while True:
-		s, addr = s.accept()
+		c, addr = s.accept()
 		print("Accepted connection from", addr)
-		t = Thread(target = serve_content_provider_helper, args = (s,addr))
+		t = Thread(target = serve_content_provider_helper, args = (c,addr))
 		threads.append(t)
 		t.start()
+	print("out here")
 	for t in threads:
 		t.join()
-	s.close()
+	c.close()
 
 def popluate_content_dict():
 	global content_dict, content_dictL
