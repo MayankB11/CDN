@@ -16,7 +16,7 @@ from edgeServer.edgeServer import md5
 ############# Get IP of load balancer from DNS
 
 s = socket.socket()         
-host = '127.0.0.1'  ## DNS_IP
+host = DNS_IP ## DNS_IP
 port = DNS_PORT            
 
 s.connect((host, port))
