@@ -23,7 +23,7 @@ def main():
 		return
 	
 	host = socket.gethostname() # LB Primary
-	port = ORIGIN_CONTENT_PROVIDER_PORT
+	port = ORIGIN_CONTENT_PROVIDER_PORT_1
 
 	try:
 		sock.connect((host, port))
