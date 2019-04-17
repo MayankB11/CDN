@@ -17,7 +17,7 @@ from messages.client_res_lb_message import *
 
 edge_servers_available = [] # (loc_id, (ip,port)) entries
 edge_servers_availableL = Lock()
-
+	
 class State(Enum):
 	PRIMARY = 1
 	SECONDARY = 2

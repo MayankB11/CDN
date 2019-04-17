@@ -3,7 +3,7 @@ import socket
 import sys  
 import time
 import sched
-from threading import Timer, Thread
+from threading import Timer, Thread, Lock
 import selectors
 sys.path.insert(0, "../")
 from messages.edge_heartbeat_message import *
@@ -14,6 +14,8 @@ import os
 
 EDGE_SERVER_STORAGE_CAPACITY = 10000000000
 current_free_space = EDGE_SERVER_STORAGE_CAPACITY
+n_clients = 0
+n_clients_l = Lock()
 
 def md5(fname):
  	hash_md5 = hashlib.md5()
@@ -23,36 +25,40 @@ def md5(fname):
  	return hash_md5.digest()
 
 def send_heartbeat_primary():
+	global n_clients,n_clients_l
 	#print("Send hearbeat")
-	try:
-		sock = socket.socket()
-		sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-		print('Socket successfully created')
-	except socket.error as err:
-		print('Socket creation failed with error %s', err)
-		return
 	
+
+	# To handle: what happens when LB Primary fails
 	
 	host = LOAD_BALANCER_PRIMARY_IP # LB Primary
 	port = LB1_HEARTBEAT_LISTENER_PORT
-
-	# To handle: what happens when LB Primary fails
 	while True:
-		
 		try:
+			try:
+				sock = socket.socket()
+				sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+				print('Socket successfully created')
+			except socket.error as err:
+				print('Socket creation failed with error %s', err)
+				return
 			sock.connect((host, port))
 			print("Connected to LB Primary")
-		except:
-			print('Load balancer primary seems to be down. Trying to reconnect in a second.')
+		except Exception as e:
+			print('Load balancer primary seems to be down. Trying to reconnect in a second.', e)
 			time.sleep(1)
-	
+			continue
+			
 		while(True):
 			print("Try to send heartbeat")
-			msg = EdgeHeartbeatMessage(1)
+			n_clients_l.acquire()
+			load = n_clients
+			n_clients_l.release()
+			msg = EdgeHeartbeatMessage(1,load)
 			try:
 				msg.send(sock)
-			except:
-				print("Connection to load balancer primary failed")
+			except Exception as e:
+				print("Connection to load balancer primary failed",e)
 				break
 			time.sleep(EDGE_HEARTBEAT_TIME)
 	sock.close()
@@ -60,14 +66,8 @@ def send_heartbeat_primary():
 
 
 def send_heartbeat_secondary():
+	global n_clients,n_clients_l
 	#print("Send hearbeat")
-	try:
-		sock = socket.socket()
-		sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-		print('Socket successfully created')
-	except socket.error as err:
-		print('Socket creation failed with error %s', err)
-		return
 	
 	
 	host = LOAD_BALANCER_SECONDARY_IP # LB Primary
@@ -77,19 +77,30 @@ def send_heartbeat_secondary():
 	while True:
 		
 		try:
+			try:
+				sock = socket.socket()
+				sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+				print('Socket successfully created')
+			except socket.error as err:
+				print('Socket creation failed with error %s', err)
+				return
 			sock.connect((host, port))
 			print("Connected to LB Secondary")
-		except:
-			print('Load balancer secondary seems to be down. Trying to reconnect in a second.')
+		except Exception as e:
+			print('Load balancer secondary seems to be down. Trying to reconnect in a second.',e)
 			time.sleep(1)
+			continue
 	
 		while(True):
 			print("Try to send heartbeat")
-			msg = EdgeHeartbeatMessage(1)
+			n_clients_l.acquire()
+			load = n_clients
+			n_clients_l.release()
+			msg = EdgeHeartbeatMessage(1,load)
 			try:
 				msg.send(sock)
-			except:
-				print("Connection to load balancer secondary failed")
+			except Exception as e:
+				print("Connection to load balancer secondary failed",e)
 				break
 			time.sleep(EDGE_HEARTBEAT_TIME)
 	sock.close()
@@ -159,7 +170,11 @@ def fetch_and_send(conn,addr,content_id,last_received_seq_no):
 	s.close()
 
 def serve_client(conn,addr):
+	global n_clients_l,n_clients
 	global content_dict
+	n_clients_l.acquire()
+	n_clients = n_clients+1
+	n_clients_l.release()
 	message = ContentRequestMessage(0, 0)
 	message.receive(conn)
 	# Get filename from file
@@ -190,9 +205,14 @@ def serve_client(conn,addr):
 	else:
 		# Get chunks of data from origin and send to client
 		fetch_and_send(conn,addr,message.content_id,message.seq_no)
+
+	n_clients_l.acquire()
+	n_clients = n_clients-1
+	n_clients_l.release()
 	conn.close()
 
 def main():	
+	global n_clients, n_clients_l
 	try: 
 		s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
 		print("Socket successfully created")
