@@ -311,6 +311,7 @@ def serve_content_provider_helper(c,addr):
 	content_dictL.release()
 	print_dict()
 	c.close()
+	print('closed')
 
 def serve_content_provider():
 	try: 

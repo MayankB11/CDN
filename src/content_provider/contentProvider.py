@@ -23,20 +23,22 @@ def main():
 		return
 	
 	host = socket.gethostname() # LB Primary
-	port = ORIGIN_CONTENT_PROVIDER_PORT_1
-
-	try:
-		sock.connect((host, port))
-		print("Connected to origin Primary")
-	except:
+	
+	while(True):
 		try:
-			# Should connect to secondary
-			print("Connected to origin Secondary")
-			return
-			pass
+			port = ORIGIN_CONTENT_PROVIDER_PORT_1
+			sock.connect((host, port))
+			print("Connected to origin Primary")
 		except:
-			print("Connection to origin failed")
-			return
+			try:
+				port = ORIGIN_CONTENT_PROVIDER_PORT_2
+				sock.connect((host, port))
+				print("Connected to origin Secondary")
+			except:
+				print("Connection to origin failed, retrying")
+				time.sleep(1)
+				continue
+		break
 	
 	filename = sys.argv[1]
 	content_id = int(sys.argv[2])
