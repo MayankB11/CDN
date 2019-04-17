@@ -28,7 +28,7 @@ def heartBeat():
 	while(True):
 		sock = socket.socket()
 		sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-		host = '127.0.0.1'
+		host = LOAD_BALANCER_PRIMARY_IP
 		port = LB_HEARTBEAT_PORT
 		sock.bind((host, port))
 		sock.listen(1)
@@ -95,7 +95,7 @@ def receive_heartbeat(conn, addr):
 def edge_heartbeat_handler():
 	sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-	host = '127.0.0.1'
+	host = LOAD_BALANCER_PRIMARY_IP
 	port = LB1_HEARTBEAT_LISTENER_PORT
 	sock.bind((host,port))
 	sock.listen(MAX_EDGE_SERVERS)
@@ -178,7 +178,7 @@ if __name__ == "__main__":
 
 	# Register itself to DNS
 	s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)    
-	host = '127.0.0.1'
+	host = DNS_IP
 	port = DNS_PORT
 	s.connect((host, port))
 
@@ -191,7 +191,7 @@ if __name__ == "__main__":
 	# Serve clients
 	sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-	host = '127.0.0.1'
+	host = LOAD_BALANCER_PRIMARY_IP
 	port = LB_CLIENT_LISTEN_PORT
 	sock.bind((host,port))
 	sock.listen(MAX_CLIENT_REQUESTS)

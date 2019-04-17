@@ -33,6 +33,8 @@ content_dict_l = Lock()
 lru_dict = {}
 lru_dict_l = Lock()
 
+location_id
+
 def dumpContentDict():
 	global content_dict
 	content_dict_l.acquire()
@@ -61,8 +63,8 @@ def md5(fname):
 
 def send_heartbeat_primary():
 	
-	global n_clients,n_clients_l
-	
+	global n_clients,n_clients_l,location_id
+
 	host = LOAD_BALANCER_PRIMARY_IP # LB Primary
 	port = LB1_HEARTBEAT_LISTENER_PORT
 	
@@ -92,7 +94,7 @@ def send_heartbeat_primary():
 			load = n_clients
 			n_clients_l.release()
 			
-			msg = EdgeHeartbeatMessage(1,load)
+			msg = EdgeHeartbeatMessage(location_id,load)
 			
 			try:
 				msg.send(sock)
@@ -106,7 +108,7 @@ def send_heartbeat_primary():
 
 
 def send_heartbeat_secondary():
-	global n_clients,n_clients_l
+	global n_clients,n_clients_l, location_id
 	
 	host = LOAD_BALANCER_SECONDARY_IP # LB Primary
 	port = LB2_HEARTBEAT_LISTENER_PORT
@@ -137,7 +139,7 @@ def send_heartbeat_secondary():
 			load = n_clients
 			n_clients_l.release()
 		
-			msg = EdgeHeartbeatMessage(1,load)
+			msg = EdgeHeartbeatMessage(location_id,load)
 			
 			try:
 				msg.send(sock)
@@ -339,7 +341,7 @@ def serve_client(conn,addr):
 	conn.close()
 
 def main():	
-	global n_clients, n_clients_l
+	global n_clients, n_clients_l, location_id
 
 	try: 
 		s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
@@ -351,6 +353,7 @@ def main():
 	s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
 	port = int(sys.argv[1])
+	location_id = int(sys.argv[2])
 	s.bind(('', port))         
 	
 	print ("socket binded to %s" %(port)) 	
