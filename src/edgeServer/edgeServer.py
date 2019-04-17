@@ -135,14 +135,14 @@ def fetch_and_send(conn,addr,content_id,last_received_seq_no):
 	s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 	
 	host = '127.0.0.1'
-	port = ORIGIN_SERVER_PORT
+	port = ORIGIN_SERVER_PORT_1
 	
 	s.connect((host, port))
 	
 	message = ContentRequestMessage(content_id, 0)
 	message.send(s)
 	
-	file_des = FileDescriptionMessage(0, 0, '', '')
+	file_des = FileDescriptionMessage(0, 0, '', bytearray())
 	file_des.receive(s)
 	
 	print("File fetching: ",file_des.file_name)
