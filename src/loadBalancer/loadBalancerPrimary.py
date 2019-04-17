@@ -146,7 +146,7 @@ def serve_client(conn, addr):
 				continue
 			cur_dist = dist(server[0], loc_id)
 			edge_server_load_l.acquire()
-			if 0.55*min_dist+0.45*cur_load > 0.55*cur_dist+0.45*edge_server_load[edge_servers_available[best_server_index][1]]:
+			if WEIGHT_DISTANCE*min_dist+WEIGHT_LOAD*cur_load > WEIGHT_DISTANCE*cur_dist+WEIGHT_LOAD*edge_server_load[edge_servers_available[best_server_index][1]]:
 				min_dist = cur_dist
 				best_server_index = e
 			edge_server_load_l.release()

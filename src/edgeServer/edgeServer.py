@@ -171,11 +171,13 @@ def fetch_and_send(conn,addr,content_id,last_received_seq_no):
 		
 		print('data/'+file_des.file_name+"...........")
 		with open('data/'+file_des.file_name,'wb') as f:
+			recv_size = 0 
+			file_size = file_des.file_size
 			while True:
 				mes = ContentMessage(0,0)
 				print('receiving data...')
 				
-				mes.receive(s)
+				mes.receive(s,file_size,recv_size)
 				print(mes.content_id) 
 				print(mes.seq_no)
 				
@@ -184,7 +186,7 @@ def fetch_and_send(conn,addr,content_id,last_received_seq_no):
 					break
 
 				f.write(data)
-				
+				recv_size+=len(data)
 				if last_received_seq_no>mes.seq_no:
 					continue
 
