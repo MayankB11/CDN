@@ -22,21 +22,26 @@ def main():
 		print('Socket creation failed with error %s', err)
 		return
 	
-	host = ORIGIN_SERVER_IP_1 # LB Primary
-	port = ORIGIN_CONTENT_PROVIDER_PORT_1
 
-	try:
-		sock.connect((host, port))
-		print("Connected to origin Primary")
-	except:
+
+	
+	while(True):
 		try:
-			# Should connect to secondary
-			print("Connected to origin Secondary")
-			return
-			pass
+			host = ORIGIN_SERVER_IP_1 
+			port = ORIGIN_CONTENT_PROVIDER_PORT_1
+			sock.connect((host, port))
+			print("Connected to origin Primary")
 		except:
-			print("Connection to origin failed")
-			return
+			try:
+				host = ORIGIN_SERVER_IP_2
+				port = ORIGIN_CONTENT_PROVIDER_PORT_2
+				sock.connect((host, port))
+				print("Connected to origin Secondary")
+			except:
+				print("Connection to origin failed, retrying")
+				time.sleep(1)
+				continue
+		break
 	
 	filename = sys.argv[1]
 	content_id = int(sys.argv[2])
