@@ -101,18 +101,21 @@ def serve_client(conn, addr):
 
 		min_dist = sys.maxsize
 		cur_load = sys.maxsize
-		best_server_index = -1
+		best_server_index = 0
 		
 		for e,server in enumerate(edge_servers_available):
 			
 			if server[1]==msg.prev_edge_ip:
+				if e == 0:
+					best_server_index = 1
 				continue
 			
 			cur_dist = dist(server[0], loc_id)
 			edge_server_load_l.acquire()
 			
-			if WEIGHT_DISTANCE*min_dist+WEIGHT_LOAD*cur_load > WEIGHT_DISTANCE*cur_dist+WEIGHT_LOAD*edge_server_load[edge_servers_available[best_server_index][1]]:
+			if WEIGHT_DISTANCE*min_dist+WEIGHT_LOAD*cur_load > WEIGHT_DISTANCE*cur_dist+WEIGHT_LOAD*edge_server_load[edge_servers_available[e][1]]:
 				min_dist = cur_dist
+				cur_load = edge_server_load[edge_servers_available[e][1]]
 				best_server_index = e
 			
 			edge_server_load_l.release()

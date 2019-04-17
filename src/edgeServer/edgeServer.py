@@ -33,7 +33,7 @@ content_dict_l = Lock()
 lru_dict = {}
 lru_dict_l = Lock()
 
-location_id
+location_id = 0
 
 def dumpContentDict():
 	global content_dict

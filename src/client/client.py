@@ -166,7 +166,7 @@ while True:
 		print("Content id cannot be less than 1")
 		continue
 	seqNo = -1
-	location_id = sys.argv[1]
+	location_id = int(sys.argv[1])
 	n_msg = ClientReqLBMessage(contentReq,location_id)
 	prev_edge_ip = n_msg.prev_edge_ip
 	while True:
