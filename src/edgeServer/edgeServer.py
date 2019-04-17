@@ -17,6 +17,11 @@ from messages.content_related_messages import *
 EDGE_SERVER_STORAGE_CAPACITY = 10000000000
 current_free_space = EDGE_SERVER_STORAGE_CAPACITY
 
+"""
+n_clients is the variable containing number of clients this edge server is serving
+n_clients_l is the lock of n_clients
+
+"""
 n_clients = 0
 n_clients_l = Lock()
 

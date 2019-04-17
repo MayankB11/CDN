@@ -8,6 +8,10 @@ from struct import *
 
 class OriginHeartbeatMessage(Message):
 
+	"""
+	file_exists (single byte)
+	"""
+
 	signature = 'B'
 	size = calcsize(signature)
 

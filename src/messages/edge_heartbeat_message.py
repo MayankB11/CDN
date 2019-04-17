@@ -8,6 +8,11 @@ from struct import *
 
 class EdgeHeartbeatMessage(Message):
 
+	"""
+	loc (integer)
+	load (integer) number of requests
+	"""
+
 	signature = 'HQ'
 	size = calcsize(signature)
 

@@ -34,6 +34,12 @@ s.close()
 
 ############# Request file from load balancer
 def connectLB(ipblocks):
+
+	"""
+	Method to connect to LBs
+	IP blocks contains the DNS response
+	"""
+
 	err_count = 0
 
 	for host, port in ipblocks:
@@ -70,11 +76,13 @@ print(msg.ip, msg.port)
 ############# Request file from redirected IP of edge server
 
 def requestFile(edgeIP,edgePort,content_id,seq_no=0):
+	
 	## Sequence number is zero for initial request
 	## returns last sequence number it received 
 	## -2 if complete file is received
 	## -1 if nothing is received
 	## else the sequence number
+
 	soc = socket.socket()             # Create a socket object                   
 	soc.settimeout(30)
 	
