@@ -9,6 +9,11 @@ from config import *
 
 class ClientResLBMessage(Message):
 
+	"""
+	ip (ip address in the form of string)
+	port (a integer number)
+	"""
+
 	signature = '4cH'
 	size = calcsize(signature)
 

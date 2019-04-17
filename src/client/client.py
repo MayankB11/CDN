@@ -34,6 +34,12 @@ s.close()
 
 ############# Request file from load balancer
 def connectLB(ipblocks):
+
+	"""
+	Method to connect to LBs
+	IP blocks contains the DNS response
+	"""
+
 	err_count = 0
 
 	for host, port in ipblocks:
@@ -70,13 +76,15 @@ print(msg.ip, msg.port)
 ############# Request file from redirected IP of edge server
 
 def requestFile(edgeIP,edgePort,content_id,seq_no=0):
+	
 	## Sequence number is zero for initial request
 	## returns last sequence number it received 
 	## -2 if complete file is received
 	## -1 if nothing is received
 	## else the sequence number
+
 	soc = socket.socket()             # Create a socket object                   
-	soc.settimeout(10)
+	soc.settimeout(30)
 	
 	try:
 		print("Connecting to edge server ip: ",edgeIP)
@@ -102,13 +110,17 @@ def requestFile(edgeIP,edgePort,content_id,seq_no=0):
 	print(file_des.file_name)
 	print(file_des.content_id)
 	print(file_des.file_size)
-	with open('rec_' + file_des.file_name, 'wb') as f:
+	if seq_no!=0:
+		param = 'ab'
+	else:
+		param = 'wb'
+	with open('rec_' + file_des.file_name, param) as f:
 		print('file opened')
 		print("Content ID: ",file_des.content_id)
 		if seq_no!=0:
 			f.seek(seq_no*1018)
 		file_size = file_des.file_size
-		total_received=0
+		total_received=seq_no*1018
 		while True:
 			msg = ContentMessage(content_id, seq_no)
 
@@ -165,6 +177,7 @@ while True:
 				raise Exception("Load Balancer could not be reached!")
 			n_msg = ClientReqLBMessage(contentReq,seqNo+1,prev_edge_ip)
 			try:
+				input("Press enter to request new edge server")
 				n_msg.send(s)
 				n_msg = ClientResLBMessage()
 				n_msg.receive(s)

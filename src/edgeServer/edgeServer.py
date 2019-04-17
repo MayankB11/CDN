@@ -17,6 +17,11 @@ from messages.content_related_messages import *
 EDGE_SERVER_STORAGE_CAPACITY = 10000000000
 current_free_space = EDGE_SERVER_STORAGE_CAPACITY
 
+"""
+n_clients is the variable containing number of clients this edge server is serving
+n_clients_l is the lock of n_clients
+
+"""
 n_clients = 0
 n_clients_l = Lock()
 
@@ -135,14 +140,14 @@ def fetch_and_send(conn,addr,content_id,last_received_seq_no):
 	s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 	
 	host = '127.0.0.1'
-	port = ORIGIN_SERVER_PORT
+	port = ORIGIN_SERVER_PORT_1
 	
 	s.connect((host, port))
 	
 	message = ContentRequestMessage(content_id, 0)
 	message.send(s)
 	
-	file_des = FileDescriptionMessage(0, 0, '', '')
+	file_des = FileDescriptionMessage(0, 0, '', bytearray())
 	file_des.receive(s)
 	
 	print("File fetching: ",file_des.file_name)

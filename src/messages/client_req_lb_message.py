@@ -9,6 +9,12 @@ from config import *
 
 class ClientReqLBMessage(Message):
 
+	"""
+	content_id (integer)
+	loc_id (interger)
+	prev_edge_ip (string containing IP address)
+	"""
+
 	signature = "HH4c"
 	size = calcsize(signature)
 

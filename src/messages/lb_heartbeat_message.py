@@ -8,6 +8,11 @@ from struct import *
 
 class LBHeartbeatMessage(Message):
 
+	"""
+	no input
+	A single byte message
+	"""
+
 	signature = 'B'
 	size = calcsize(signature)
 
