@@ -14,7 +14,7 @@ from config import *
 from messages.edge_heartbeat_message import *
 from messages.content_related_messages import *
 
-EDGE_SERVER_STORAGE_CAPACITY = 10000000000
+EDGE_SERVER_STORAGE_CAPACITY = 700000
 current_free_space = EDGE_SERVER_STORAGE_CAPACITY
 
 """
@@ -131,6 +131,8 @@ def send_heartbeat_secondary():
 
 def fetch_and_send(conn,addr,content_id,last_received_seq_no):
 	
+	global EDGE_SERVER_STORAGE_CAPACITY, current_free_space
+
 	try: 
 		s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
 		print("Socket successfully created")
@@ -163,11 +165,12 @@ def fetch_and_send(conn,addr,content_id,last_received_seq_no):
 		while current_free_space < file_des.file_size:
 			# remove least recently used file
 			content_id_to_delete = min(lru_dict, key=lru_dict.get)
-			content_free_space += lru_dict[content_id_to_delete][1]
+			current_free_space += lru_dict[content_id_to_delete][1]
 			
 			del lru_dict[content_id_to_delete]
 			os.remove('data/'+content_dict[content_id_to_delete])
 			del content_dict[content_id_to_delete]
+			print("File Deleted")
 		
 		content_dict[file_des.content_id] = file_des.file_name
 		lru_dict[file_des.content_id] = (time.time(), file_des.file_size)
@@ -183,7 +186,7 @@ def fetch_and_send(conn,addr,content_id,last_received_seq_no):
 				print('receiving data...')
 				
 				mes.receive(s,file_size,recv_size)
-				print(mes.content_id) 
+				print(mes.content_id)
 				print(mes.seq_no)
 				
 				data = mes.data
@@ -192,6 +195,7 @@ def fetch_and_send(conn,addr,content_id,last_received_seq_no):
 
 				f.write(data)
 				recv_size+=len(data)
+				current_free_space -= len(data)
 				if last_received_seq_no>mes.seq_no:
 					continue
 
@@ -207,6 +211,9 @@ def fetch_and_send(conn,addr,content_id,last_received_seq_no):
 			os.remove('data/'+file_des.file_name)
 
 		content_dict[content_id]=file_des.file_name
+		# print("After updating the content_dict")
+		# print(content_dict)
+		# print("After writing Current free space = "+str(current_free_space))
 	
 	s.close()
 
@@ -266,7 +273,7 @@ def serve_client(conn,addr):
 
 def main():	
 	global n_clients, n_clients_l
-	
+
 	try: 
 		s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
 		print("Socket successfully created")
