@@ -33,25 +33,31 @@ print(ipblocks)
 s.close()
 
 ############# Request file from load balancer
+def connectLB(ipblocks):
+	err_count = 0
 
-err_count = 0
+	for host, port in ipblocks:
+		s = socket.socket()
+		try:
+			print("Connecting ",host,":",port)
+			s.connect((host, port))
+			print("Connected ",host,":",port)
+			break
+		except socket.error:
+			err_count += 1
+			print("Connection failed ",host,":",port)
+			continue
 
-for host, port in ipblocks:
-	s = socket.socket()
-	try:
-		print("Connecting ",host,":",port)
-		s.connect((host, port))
-		print("Connected ",host,":",port)
-		break
-	except socket.error:
-		err_count += 1
-		print("Connection failed ",host,":",port)
-		continue
+	if err_count == 2:
+		print("Load Balancer could not be reached!")
+		return s,0
+	else:
+		print("Connection established to the load balancer")
+		return s,1
 
-if err_count == 2:
+s,err = connectLB(ipblocks)
+if err==0:
 	raise Exception("Load Balancer could not be reached!")
-else:
-	print("Connection established to the load balancer")
 
 msg = ClientReqLBMessage(1,1)
 msg.send(s)
@@ -136,6 +142,7 @@ def requestFile(edgeIP,edgePort,content_id,seq_no=0):
 
 	return -2
 
+
 while True:
 	contentreq = input("Enter content id: ")
 	try:
@@ -146,12 +153,33 @@ while True:
 	if(contentReq<=0):
 		print("Content id cannot be less than 1")
 		continue
+	seqNo = -1
+	n_msg = ClientReqLBMessage(contentReq,seqNo+1)
+	prev_edge_ip = n_msg.prev_edge_ip
 	while True:
-		seqNo = requestFile(msg.ip, EDGE_SERVER_PORT ,contentReq)
+		# seqNo = requestFile(msg.ip, EDGE_SERVER_PORT ,contentReq)
 		if seqNo != -2:
 			## TO DO get new edge server from load balancer
-			input("Press enter!")
-			seqNo = requestFile(msg.ip, EDGE_SERVER_PORT ,contentReq, seqNo+1)
+			s, err = connectLB(ipblocks)
+			if err==0:
+				raise Exception("Load Balancer could not be reached!")
+			n_msg = ClientReqLBMessage(contentReq,seqNo+1,prev_edge_ip)
+			try:
+				n_msg.send(s)
+				n_msg = ClientResLBMessage()
+				n_msg.receive(s)
+				prev_edge_ip = n_msg.ip
+				input("Press enter to connect to edge server!")
+				if n_msg.ip=='0.0.0.0':
+					print("No edge servers available.")
+					input("Press enter to try again!")
+					continue
+				seqNo = requestFile(n_msg.ip, EDGE_SERVER_PORT ,contentReq, seqNo+1)
+			except:
+				print("Error communicating with LB")
+				input("Press enter to request another/same file!")
+				break
+			s.close()
 		else:
 			break
 

@@ -103,13 +103,31 @@ def serve_client(conn, addr):
 	msg = ClientReqLBMessage()
 	msg.receive(conn)
 	if msg.received:
-		print("Received reuqest: loc id", msg.loc_id, "from", addr)
+		print("Received request: loc id ", msg.loc_id, " from ", addr)
 		loc_id = msg.loc_id
 		# look in edge_servers_available after acquiring lock
 		edge_servers_availableL.acquire()
-		min_dist = dist(edge_servers_available[0][0], loc_id)
-		best_server_index = 0
+		# At least one edge server would be available
+		if(len(edge_servers_available)==1):
+			msg = ClientResLBMessage(*edge_servers_available[0][1])
+			edge_servers_availableL.release()
+			msg.send(conn)
+			conn.close()
+			return
+
+		if(len(edge_servers_available)==0):
+			msg = ClientResLBMessage('0.0.0.0',EDGE_SERVER_PORT)
+			edge_servers_availableL.release()
+			msg.send(conn)
+			conn.close()
+			return
+
+		min_dist = sys.maxsize
+		best_server_index = -1
 		for e,server in enumerate(edge_servers_available):
+			print(type(server[1]))
+			if server[1]==msg.prev_edge_ip:
+				continue
 			cur_dist = dist(server[0], loc_id)
 			if min_dist > cur_dist:
 				min_dist = cur_dist
