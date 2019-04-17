@@ -14,18 +14,17 @@ content_dict = {}
 
 def main():
 	global content_dict
-	try:
-		sock = socket.socket()
-		sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-		print('Socket successfully created')
-	except socket.error as err:
-		print('Socket creation failed with error %s', err)
-		return
-	
-	host = socket.gethostname() # LB Primary
 	
 	while(True):
 		try:
+			try:
+				sock = socket.socket()
+				sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+				print('Socket successfully created')
+			except socket.error as err:
+				print('Socket creation failed with error %s', err)
+				return
+			host = socket.gethostname() # LB Primary
 			port = ORIGIN_CONTENT_PROVIDER_PORT_1
 			sock.connect((host, port))
 			print("Connected to origin Primary")

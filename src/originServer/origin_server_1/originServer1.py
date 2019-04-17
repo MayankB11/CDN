@@ -328,14 +328,15 @@ def serve_content_provider():
 	s.listen(5)
 	threads = []
 	while True:
-		s, addr = s.accept()
+		c, addr = s.accept()
 		print("Accepted connection from", addr)
-		t = Thread(target = serve_content_provider_helper, args = (s,addr))
+		t = Thread(target = serve_content_provider_helper, args = (c,addr))
 		threads.append(t)
 		t.start()
+	print("out here")
 	for t in threads:
 		t.join()
-	s.close()
+	c.close()
 
 def popluate_content_dict():
 	global content_dict, content_dictL
