@@ -350,7 +350,7 @@ def main():
 	
 	s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-	port = EDGE_SERVER_PORT
+	port = int(sys.argv[1])
 	s.bind(('', port))         
 	
 	print ("socket binded to %s" %(port)) 	
