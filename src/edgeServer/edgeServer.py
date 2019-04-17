@@ -1,8 +1,3 @@
-from _thread import *
-from threading import Timer, Thread, Lock
-from config import *
-from messages.edge_heartbeat_message import *
-from messages.content_related_messages import *
 import socket
 import sys  
 import time
@@ -12,6 +7,12 @@ import hashlib
 import os
 
 sys.path.insert(0, "../")
+
+from _thread import *
+from threading import Timer, Thread, Lock
+from config import *
+from messages.edge_heartbeat_message import *
+from messages.content_related_messages import *
 
 EDGE_SERVER_STORAGE_CAPACITY = 10000000000
 current_free_space = EDGE_SERVER_STORAGE_CAPACITY

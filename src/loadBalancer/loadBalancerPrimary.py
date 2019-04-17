@@ -139,15 +139,17 @@ def serve_client(conn, addr):
 			return
 
 		min_dist = sys.maxsize
+		cur_load = sys.maxsize
 		best_server_index = -1
 		for e,server in enumerate(edge_servers_available):
-			print(type(server[1]))
 			if server[1]==msg.prev_edge_ip:
 				continue
 			cur_dist = dist(server[0], loc_id)
-			if min_dist > cur_dist:
+			edge_server_load_l.acquire()
+			if 0.55*min_dist+0.45*cur_load > 0.55*cur_dist+0.45*edge_server_load[edge_servers_available[best_server_index][1]]:
 				min_dist = cur_dist
 				best_server_index = e
+			edge_server_load_l.release()
 		msg = ClientResLBMessage(*edge_servers_available[best_server_index][1])
 		edge_servers_availableL.release()
 		msg.send(conn)
