@@ -18,9 +18,10 @@ from messages.client_res_lb_message import *
 # Global tables and lock variables #
 ####################################
 
-edge_servers_available = [] # (loc_id, (ip,port)) entries
+edge_servers_available = [] # (loc_id, (ip,port)) entries 	
 edge_servers_availableL = Lock()
-
+edge_server_load = {}
+edge_server_load_l = Lock()
 ####################################
 
 def heartBeat():
@@ -31,6 +32,7 @@ def heartBeat():
 		port = LB_HEARTBEAT_PORT
 		sock.bind((host, port))
 		sock.listen(1)
+		print("LB-LB Heartbeat socket binded")
 		conn, addr = sock.accept()
 		print('Accepted', conn, 'from', addr)
 		print('Connected to backup load balancer')
@@ -52,10 +54,16 @@ def receive_heartbeat(conn, addr):
 	# Edge server added
 	msg = EdgeHeartbeatMessage()
 	msg.receive(conn)
+	prev_load = -1
 	if msg.received:
 		print("New edge server connected", addr)
+		# prev_load = msg.load
+		edge_server_load_l.acquire()
+		edge_server_load[addr] = msg.load
+		edge_server_load_l.release()
+		prev_load = msg.load
 		edge_servers_availableL.acquire()
-		edge_servers_available.append((msg.loc, addr))
+		edge_servers_available.append((msg.loc, addr,msg.load))
 		edge_servers_availableL.release()
 
 	# Check for liveness
@@ -64,6 +72,11 @@ def receive_heartbeat(conn, addr):
 		msg.receive(conn)
 		if msg.received == False:
 			break
+		if prev_load!=msg.load:
+			edge_server_load_l.acquire()
+			edge_server_load[addr] = msg.load
+			edge_server_load_l.release()
+			prev_load = msg.load
 		print("Heartbeat received from", addr)
 
 	print("Edge server ", addr, " failed")
@@ -73,6 +86,9 @@ def receive_heartbeat(conn, addr):
 			edge_servers_availableL.acquire()
 			edge_servers_available.pop(e)
 			edge_servers_availableL.release()
+			edge_server_load_l.acquire()
+			del edge_server_load[addr]
+			edge_server_load_l.release()
 			break
 	conn.close()
 
@@ -80,7 +96,7 @@ def edge_heartbeat_handler():
 	sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 	host = '127.0.0.1'
-	port = EDGE_HEARTBEAT_LISTENER_PORT
+	port = LB1_HEARTBEAT_LISTENER_PORT
 	sock.bind((host,port))
 	sock.listen(MAX_EDGE_SERVERS)
 	
@@ -103,17 +119,37 @@ def serve_client(conn, addr):
 	msg = ClientReqLBMessage()
 	msg.receive(conn)
 	if msg.received:
-		print("Received reuqest: loc id", msg.loc_id, "from", addr)
+		print("Received request: loc id ", msg.loc_id, " from ", addr)
 		loc_id = msg.loc_id
 		# look in edge_servers_available after acquiring lock
 		edge_servers_availableL.acquire()
-		min_dist = dist(edge_servers_available[0][0], loc_id)
-		best_server_index = 0
+		# At least one edge server would be available
+		if(len(edge_servers_available)==1):
+			msg = ClientResLBMessage(*edge_servers_available[0][1])
+			edge_servers_availableL.release()
+			msg.send(conn)
+			conn.close()
+			return
+
+		if(len(edge_servers_available)==0):
+			msg = ClientResLBMessage('0.0.0.0',EDGE_SERVER_PORT)
+			edge_servers_availableL.release()
+			msg.send(conn)
+			conn.close()
+			return
+
+		min_dist = sys.maxsize
+		cur_load = sys.maxsize
+		best_server_index = -1
 		for e,server in enumerate(edge_servers_available):
+			if server[1]==msg.prev_edge_ip:
+				continue
 			cur_dist = dist(server[0], loc_id)
-			if min_dist > cur_dist:
+			edge_server_load_l.acquire()
+			if WEIGHT_DISTANCE*min_dist+WEIGHT_LOAD*cur_load > WEIGHT_DISTANCE*cur_dist+WEIGHT_LOAD*edge_server_load[edge_servers_available[best_server_index][1]]:
 				min_dist = cur_dist
 				best_server_index = e
+			edge_server_load_l.release()
 		msg = ClientResLBMessage(*edge_servers_available[best_server_index][1])
 		edge_servers_availableL.release()
 		msg.send(conn)

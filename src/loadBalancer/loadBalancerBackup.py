@@ -2,15 +2,22 @@
 
 import sys
 import socket
-from threading import Timer, Thread
+from threading import Timer, Thread, Lock
 import time
 from enum import Enum
 
 sys.path.insert(0, "../")
 
 from config import *
+from messages.dns_request_message import *
 from messages.lb_heartbeat_message import *
+from messages.edge_heartbeat_message import *
+from messages.client_req_lb_message import *
+from messages.client_res_lb_message import *
 
+edge_servers_available = [] # (loc_id, (ip,port)) entries
+edge_servers_availableL = Lock()
+	
 class State(Enum):
 	PRIMARY = 1
 	SECONDARY = 2
@@ -53,12 +60,64 @@ def check_and_run_balancer():
 
 state = State.SECONDARY
 
+def receive_heartbeat(conn, addr):
+	global edge_servers_available, edge_servers_availableL
+
+	print("Connection Established with ", addr)
+	# Edge server added
+	msg = EdgeHeartbeatMessage()
+	msg.receive(conn)
+	if msg.received:
+		print("New edge server connected", addr)
+		edge_servers_availableL.acquire()
+		edge_servers_available.append((msg.loc, addr))
+		edge_servers_availableL.release()
+
+	# Check for liveness
+	while True:
+		msg = EdgeHeartbeatMessage()
+		msg.receive(conn)
+		if msg.received == False:
+			break
+		print("Heartbeat received from", addr)
+
+	print("Edge server ", addr, " failed")
+	# Edge server removed
+	for e,a in enumerate(edge_servers_available):
+		if a[1] == addr:
+			edge_servers_availableL.acquire()
+			edge_servers_available.pop(e)
+			edge_servers_availableL.release()
+			break
+	conn.close()
+
+def edge_heartbeat_handler():
+	sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+	host = '127.0.0.1'
+	port = LB2_HEARTBEAT_LISTENER_PORT
+	sock.bind((host,port))
+	sock.listen(MAX_EDGE_SERVERS)
+	
+	threads = []
+	while True:
+		c, addr = sock.accept()
+		t = Thread(target = receive_heartbeat,args = (c,addr))
+		threads.append(t)
+		t.start()
+	
+	sock.close()
+
+
 if __name__ == "__main__":
+
+	t_edge_server_hb = Thread(target = edge_heartbeat_handler)
+	t_edge_server_hb.start()
 
 	while(True):
 
 		sock = socket.socket()
-		host = socket.gethostname()
+		host = '127.0.0.1'
 		port = LB_HEARTBEAT_PORT
 		print("Trying to connect to primary")
 		while(True):
@@ -79,3 +138,4 @@ if __name__ == "__main__":
 
 		while msg.received:
 			msg.receive(sock)
+	t_edge_server_hb.join()
