@@ -49,6 +49,8 @@ def dump():
 
 def load():
 	global content_dict
+	if not os.path.isfile(ORIGIN_METADATA_FILENAME):
+		return
 	f = open(ORIGIN_METADATA_FILENAME, 'rb')
 	content_dict =	 pickle.load(f)
 	f.close()

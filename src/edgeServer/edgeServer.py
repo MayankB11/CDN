@@ -15,7 +15,7 @@ from config import *
 from messages.edge_heartbeat_message import *
 from messages.content_related_messages import *
 
-EDGE_SERVER_STORAGE_CAPACITY = 700000
+EDGE_SERVER_STORAGE_CAPACITY = 70000000000
 current_free_space = EDGE_SERVER_STORAGE_CAPACITY
 
 """
@@ -28,8 +28,28 @@ n_clients_l = Lock()
 # Dictionary of files present at the edge server
 # format : content_id: filename
 content_dict = {}
+content_dict_l = Lock()
 # format : content_id : (time.time(), file_size)
 lru_dict = {}
+lru_dict_l = Lock()
+
+def dumpContentDict():
+	global content_dict
+	content_dict_l.acquire()
+	f = open(EDGE_CONTENT_DICT_FILENAME, 'wb')
+	pickle.dump(content_dict, f)
+	content_dict.release()
+	f.close()
+
+def loadContentDict():
+	global content_dict
+	if not os.path.isfile(EDGE_CONTENT_DICT_FILENAME):
+		return
+	f = open(EDGE_CONTENT_DICT_FILENAME, 'rb')
+	content_dict_l.acquire()
+	content_dict = pickle.load(f)
+	content_dict_l.release()
+	f.close()
 
 def md5(fname):
  	
@@ -157,7 +177,7 @@ def connectOrigin(ipblocks):
 		return s,1
 
 def fetch_and_send(conn,addr,content_id,last_received_seq_no):
-	
+
 	global EDGE_SERVER_STORAGE_CAPACITY, current_free_space
 
 	ipblocks = [(ORIGIN_SERVER_IP_1,ORIGIN_SERVER_PORT_1),(ORIGIN_SERVER_IP_2,ORIGIN_SERVER_PORT_2)]
@@ -259,7 +279,6 @@ def fetch_and_send(conn,addr,content_id,last_received_seq_no):
 			# print("After writing Current free space = "+str(current_free_space))
 		
 		s.close()
-
 		if flag == 1:
 			break
 
@@ -289,10 +308,11 @@ def serve_client(conn,addr):
 		file_des.send(conn)
 		
 		f = open('data/'+filename, 'rb')
-		f.seek(message.seq_no*1018)
+		# f.seek(message.seq_no*1018)
 		
 		l = f.read(1018)
-		i = message.seq_no
+		i = 0
+		last_received_seq_no = message.seq_no
 		
 		while (l):
 			if message.seq_no <= i:
@@ -302,7 +322,8 @@ def serve_client(conn,addr):
 				msg.packet_size = len(l)
 				msg.send(conn)
 
-				i += 1
+			i += 1
+
 			l = f.read(1018)
 		
 		f.close()
