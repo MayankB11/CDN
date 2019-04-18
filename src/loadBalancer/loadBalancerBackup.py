@@ -130,27 +130,35 @@ def serve_client(conn, addr):
 state = State.SECONDARY
 
 def receive_heartbeat(conn, addr):
-	
-	global edge_servers_available, edge_servers_availableL
+	global edge_servers_available, edge_servers_availableL, edge_server_load, edge_server_load_l
 
 	print("Connection Established with ", addr)
 	# Edge server added
 	msg = EdgeHeartbeatMessage()
 	msg.receive(conn)
-	
+	prev_load = -1
 	if msg.received:
 		print("New edge server connected", addr)
+		# prev_load = msg.load
+		edge_server_load_l.acquire()
+		edge_server_load[addr] = msg.load
+		edge_server_load_l.release()
+		prev_load = msg.load
 		edge_servers_availableL.acquire()
-		edge_servers_available.append((msg.loc, addr))
+		edge_servers_available.append((msg.loc, addr,msg.load))
 		edge_servers_availableL.release()
 
 	# Check for liveness
 	while True:
 		msg = EdgeHeartbeatMessage()
 		msg.receive(conn)
-		
 		if msg.received == False:
 			break
+		if prev_load!=msg.load:
+			edge_server_load_l.acquire()
+			edge_server_load[addr] = msg.load
+			edge_server_load_l.release()
+			prev_load = msg.load
 		print("Heartbeat received from", addr)
 
 	print("Edge server ", addr, " failed")
@@ -160,8 +168,10 @@ def receive_heartbeat(conn, addr):
 			edge_servers_availableL.acquire()
 			edge_servers_available.pop(e)
 			edge_servers_availableL.release()
+			edge_server_load_l.acquire()
+			del edge_server_load[addr]
+			edge_server_load_l.release()
 			break
-	
 	conn.close()
 
 def edge_heartbeat_handler():

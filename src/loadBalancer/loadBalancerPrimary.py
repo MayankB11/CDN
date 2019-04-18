@@ -48,7 +48,7 @@ def heartBeat():
 			time.sleep(LB_HEARTBEAT_TIME)
 
 def receive_heartbeat(conn, addr):
-	global edge_servers_available, edge_servers_availableL
+	global edge_servers_available, edge_servers_availableL, edge_server_load, edge_server_load_l
 
 	print("Connection Established with ", addr)
 	# Edge server added
