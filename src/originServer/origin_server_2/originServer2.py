@@ -118,13 +118,7 @@ def synchronizer():
 def synchronize_receive():
 	global content_dict, content_dictL
 
-	try:
-		sock = socket.socket()
-		sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-		print('Socket successfully created')
-	except socket.error as err:
-		print('Socket creation failed with error %s', err)
-		return
+
 	host = ORIGIN_SERVER_IP_1
 	port = ORIGIN_SYNCHRONIZER_PORT_1
 
@@ -132,6 +126,9 @@ def synchronize_receive():
 
 		while(True):
 			try:
+				sock = socket.socket()
+				sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+				print('Socket successfully created')
 				sock.connect((host, port))
 				print("Connected to other server")
 				break
@@ -139,7 +136,7 @@ def synchronize_receive():
 				print("Cannot connect to other server")
 				time.sleep(1)
 				continue
-
+		flag = 1
 		while(True):
 			file_des = FileDescriptionMessage(0, 0, '', '')
 			file_des.receive(sock)
@@ -190,7 +187,9 @@ def synchronize_receive():
 						except Exception as e:
 							print("Last Sequence Number received: ",last_seq_number_recv)
 							print(e)
-							return last_seq_number_recv
+							flag = 0
+							break
+							# return last_seq_number_recv
 						
 						print("Sequence no: ",msg.seq_no)
 						last_seq_number_recv = msg.seq_no
@@ -200,6 +199,8 @@ def synchronize_receive():
 						if not data:
 							break
 						f.write(data)
+				if flag == 0:
+					break
 				f.close()
 				content_dictL.acquire()
 				content_dict[file_des.content_id] = Content(file_des.content_id, file_des.file_name, ContentStatus.STORED)
@@ -208,6 +209,7 @@ def synchronize_receive():
 			else:
 				print("Error receiving")
 				break
+
 
 
 def serve_edge_server_helper(conn, addr):
@@ -235,7 +237,7 @@ def serve_edge_server_helper(conn, addr):
 				msg.data = l
 				msg.packet_size = len(l)
 				msg.send(conn)
-			i += 1
+				i += 1
 			l = f.read(1018)
 		f.close()
 	else:
