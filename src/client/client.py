@@ -65,7 +65,6 @@ def connectLB(ipblocks):
 # if err==0:
 # 	raise Exception("Load Balancer could not be reached!")
 
-
 ############# Request file from redirected IP of edge server
 
 def requestFile(edgeIP,edgePort,content_id,seq_no=0):
