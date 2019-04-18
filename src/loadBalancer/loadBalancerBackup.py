@@ -43,6 +43,7 @@ class State(Enum):
 def clientReqListener():
 	global state
 	sock = socket.socket()
+	sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 	host = LOAD_BALANCER_SECONDARY_IP  # do we need to transfer this to config.py??????????
 	port = LB_CLIENT_LISTEN_PORT_BACKUP
 	sock.bind((host, port))
@@ -86,6 +87,7 @@ def serve_client(conn, addr):
 		edge_servers_availableL.acquire()
 		# At least one edge server would be available
 		if(len(edge_servers_available)==1):
+			print("Only edge server available")
 			msg = ClientResLBMessage(*edge_servers_available[0][1])
 			edge_servers_availableL.release()
 			msg.send(conn)
@@ -93,6 +95,7 @@ def serve_client(conn, addr):
 			return
 
 		if(len(edge_servers_available)==0):
+			print("Zero edge server available")
 			msg = ClientResLBMessage('0.0.0.0',EDGE_SERVER_PORT)
 			edge_servers_availableL.release()
 			msg.send(conn)
@@ -103,6 +106,7 @@ def serve_client(conn, addr):
 		cur_load = sys.maxsize
 		best_server_index = 0
 		
+		print("Many edge servers available")
 		for e,server in enumerate(edge_servers_available):
 			
 			if server[1]==msg.prev_edge_ip:
@@ -131,7 +135,7 @@ state = State.SECONDARY
 
 def receive_heartbeat(conn, addr):
 	
-	global edge_servers_available, edge_servers_availableL
+	global edge_servers_available, edge_servers_availableL, edge_server_load, edge_server_load_l
 
 	print("Connection Established with ", addr)
 	# Edge server added
