@@ -103,12 +103,12 @@ class ContentMessage(Message):
 			try:
 				# print("Trying to receive........")
 				temp = soc.recv(ContentMessage.size-recv_size)
-				if len(temp)==0:
+				if len(temp)==0 and recv_size+total_received!=file_size:
 					self.received = False
-					raise Exception("Unable to connect to edge server")
+					raise Exception("Unable to connect to  server")
 			except:
 				self.received = False
-				raise Exception("Unable to connect to edge server")
+				raise Exception("Unable to connect to  server")
 			arr = arr+temp
 			recv_size+=len(temp)
 			# print(recv_size)
