@@ -65,6 +65,7 @@ def main():
 				l = f.read(1018)
 			f.close()
 			sock.close()
+			break
 		except socket.error as err:
 			print(err)
 			print("Retrying")
