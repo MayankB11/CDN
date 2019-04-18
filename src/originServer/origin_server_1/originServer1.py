@@ -79,43 +79,47 @@ def synchronizer():
 
 		while(True):
 			print("Looking for UNSYNCED files")
-			for file in content_dict.values():
-				if file.status == ContentStatus.UNSYNCED:
-					# Sync this file
-					print("Syncing file", file.filename, "with content id", file.content_id)
-					file_size = int(os.stat('data/'+file.filename).st_size)
-					file_des = FileDescriptionMessage(file.content_id,file_size,file.filename,md5('data/'+file.filename))
-					print(file.content_id,file_size,file.filename,md5('data/'+file.filename))
-					file_des.send(conn)
+			try:
+				for file in content_dict.values():
+					if file.status == ContentStatus.UNSYNCED:
+						# Sync this file
+						print("Syncing file", file.filename, "with content id", file.content_id)
+						file_size = int(os.stat('data/'+file.filename).st_size)
+						file_des = FileDescriptionMessage(file.content_id,file_size,file.filename,md5('data/'+file.filename))
+						print(file.content_id,file_size,file.filename,md5('data/'+file.filename))
+						file_des.send(conn)
 
-					# receive response from other server
-					msg = OriginHeartbeatMessage(0)
-					msg.receive(conn)
-					if msg.file_exists:
+						# receive response from other server
+						msg = OriginHeartbeatMessage(0)
+						msg.receive(conn)
+						if msg.file_exists:
+							content_dictL.acquire()
+							content_dict[file_des.content_id].status = ContentStatus.STORED
+							dump()
+							content_dictL.release()
+							continue
+
+						f = open('data/'+file.filename, 'rb')
+						l = f.read(1018)
+						i = 0
+						while (l):
+							# if message.seq_no <= i:
+							msg = ContentMessage(file.content_id, i)
+							msg.data = l
+							msg.packet_size = len(l)
+							msg.send(conn)
+							i += 1
+							l = f.read(1018)
+						f.close()
+
 						content_dictL.acquire()
 						content_dict[file_des.content_id].status = ContentStatus.STORED
 						dump()
 						content_dictL.release()
-						continue
-
-					f = open('data/'+file.filename, 'rb')
-					l = f.read(1018)
-					i = 0
-					while (l):
-						# if message.seq_no <= i:
-						msg = ContentMessage(file.content_id, i)
-						msg.data = l
-						msg.packet_size = len(l)
-						msg.send(conn)
-						i += 1
-						l = f.read(1018)
-					f.close()
-
-					content_dictL.acquire()
-					content_dict[file_des.content_id].status = ContentStatus.STORED
-					dump()
-					content_dictL.release()
-			time.sleep(ORIGIN_HEARTBEAT_TIME)
+				time.sleep(ORIGIN_HEARTBEAT_TIME)
+			except Exception as e:
+				print(e)
+				break
 		
 def synchronize_receive():
 	global content_dict, content_dictL
