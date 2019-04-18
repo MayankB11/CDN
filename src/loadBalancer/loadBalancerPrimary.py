@@ -148,7 +148,8 @@ def serve_client(conn, addr):
 		for e,server in enumerate(edge_servers_available):
 			
 			if server[1]==msg.prev_edge_ip:
-				if e ==0 :
+
+				if e == 0:
 					best_server_index = 1
 				continue
 			
