@@ -37,10 +37,8 @@ location_id = 0
 
 def dumpContentDict():
 	global content_dict
-	content_dict_l.acquire()
 	f = open(EDGE_CONTENT_DICT_FILENAME, 'wb')
 	pickle.dump(content_dict, f)
-	content_dict.release()
 	f.close()
 
 def loadContentDict():
@@ -48,9 +46,21 @@ def loadContentDict():
 	if not os.path.isfile(EDGE_CONTENT_DICT_FILENAME):
 		return
 	f = open(EDGE_CONTENT_DICT_FILENAME, 'rb')
-	content_dict_l.acquire()
 	content_dict = pickle.load(f)
-	content_dict_l.release()
+	f.close()
+
+def dumpLRUDict():
+	global lru_dict
+	f = open(EDGE_LRU_FILENAME, 'wb')
+	pickle.dump(lru_dict, f)
+	f.close()
+
+def loadLRUDict():
+	global lru_dict
+	if not os.path.isfile(EDGE_LRU_FILENAME):
+		return
+	f = open(EDGE_LRU_FILENAME, 'rb')
+	lru_dict = pickle.load(f)
 	f.close()
 
 def md5(fname):
@@ -180,7 +190,7 @@ def connectOrigin(ipblocks):
 
 def fetch_and_send(conn,addr,content_id,last_received_seq_no):
 
-	global EDGE_SERVER_STORAGE_CAPACITY, current_free_space
+	global EDGE_SERVER_STORAGE_CAPACITY, current_free_space, content_dict_l, content_dict, lru_dict_l, lru_dict
 
 	ipblocks = [(ORIGIN_SERVER_IP_1,ORIGIN_SERVER_PORT_1),(ORIGIN_SERVER_IP_2,ORIGIN_SERVER_PORT_2)]
 	flag = 0 # 0 is default, 1 is finished, -1 is not finished
@@ -209,16 +219,27 @@ def fetch_and_send(conn,addr,content_id,last_received_seq_no):
 			# first check if the total free space currently available is less or not
 			while current_free_space < file_des.file_size:
 				# remove least recently used file
+
+				lru_dict_l.acquire()
 				content_id_to_delete = min(lru_dict, key=lru_dict.get)
 				current_free_space += lru_dict[content_id_to_delete][1]
-				
 				del lru_dict[content_id_to_delete]
+				dumpLRUDict()
+				lru_dict_l.release()
+
+				content_dict_l.acquire()
 				os.remove('data/'+content_dict[content_id_to_delete])
 				del content_dict[content_id_to_delete]
+				dumpContentDict()
+				content_dict_l.release()
+
 				print("File Deleted")
 			
 			# content_dict[file_des.content_id] = file_des.file_name
+			lru_dict_l.acquire()
 			lru_dict[file_des.content_id] = (time.time(), file_des.file_size)
+			dumpLRUDict()
+			lru_dict_l.release()
 			
 			if flag!=-1:
 				file_des.send(conn)
@@ -275,7 +296,10 @@ def fetch_and_send(conn,addr,content_id,last_received_seq_no):
 				print("MD5 didn't match")
 				os.remove('data/'+file_des.file_name)
 
+			content_dict_l.acquire()
 			content_dict[content_id]=file_des.file_name
+			dumpContentDict()
+			content_dict_l.release()
 			# print("After updating the content_dict")
 			# print(content_dict)
 			# print("After writing Current free space = "+str(current_free_space))
@@ -286,7 +310,7 @@ def fetch_and_send(conn,addr,content_id,last_received_seq_no):
 
 def serve_client(conn,addr):
 	
-	global n_clients_l,n_clients,content_dict
+	global n_clients_l,n_clients,content_dict,lru_dict_l,lru_dict
 	
 	n_clients_l.acquire()
 	n_clients = n_clients+1
@@ -304,7 +328,10 @@ def serve_client(conn,addr):
                 # before sending the file, send its details plus a checksum
 		file_size = int(os.stat('data/'+filename).st_size)
 		
+		lru_dict_l.acquire()
 		lru_dict[message.content_id] = (time.time(), file_size)
+		dumpLRUDict()
+		lru_dict_l.release()
 		
 		file_des = FileDescriptionMessage(message.content_id, file_size, filename, md5('data/'+filename))
 		file_des.send(conn)
@@ -377,6 +404,9 @@ def main():
 
 
 if __name__ == '__main__':
+	loadContentDict()
+	loadLRUDict()
+	
 	Threads = []
 	t1 = Thread(target = send_heartbeat_primary)
 	t1.start()
