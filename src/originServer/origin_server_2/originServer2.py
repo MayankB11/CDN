@@ -235,7 +235,7 @@ def serve_edge_server_helper(conn, addr):
 				msg.data = l
 				msg.packet_size = len(l)
 				msg.send(conn)
-				i += 1
+			i += 1
 			l = f.read(1018)
 		f.close()
 	else:
