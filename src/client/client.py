@@ -61,9 +61,9 @@ def connectLB(ipblocks):
 		print("Connection established to the load balancer")
 		return s,1
 
-s,err = connectLB(ipblocks)
-if err==0:
-	raise Exception("Load Balancer could not be reached!")
+# s,err = connectLB(ipblocks)
+# if err==0:
+# 	raise Exception("Load Balancer could not be reached!")
 
 ############# Request file from redirected IP of edge server
 
@@ -172,6 +172,7 @@ while True:
 			try:
 				input("Press enter to request new edge server")
 				n_msg.send(s)
+				print('Hi')
 				n_msg = ClientResLBMessage()
 				n_msg.receive(s)
 				prev_edge_ip = n_msg.ip
