@@ -33,7 +33,7 @@ content_dict_l = Lock()
 lru_dict = {}
 lru_dict_l = Lock()
 
-location_id
+location_id = 0
 
 def dumpContentDict():
 	global content_dict
@@ -217,7 +217,7 @@ def fetch_and_send(conn,addr,content_id,last_received_seq_no):
 				del content_dict[content_id_to_delete]
 				print("File Deleted")
 			
-			content_dict[file_des.content_id] = file_des.file_name
+			# content_dict[file_des.content_id] = file_des.file_name
 			lru_dict[file_des.content_id] = (time.time(), file_des.file_size)
 			
 			if flag!=-1:
