@@ -142,78 +142,80 @@ def synchronize_receive():
 				continue
 		flag = 1
 		while(True):
-			file_des = FileDescriptionMessage(0, 0, '', '')
-			file_des.receive(sock)
-			if file_des.received:
-				print("Receiving sync file details:")
-				print(file_des.file_name)
-				print(file_des.content_id)
-				print(file_des.file_size)
+			try:
+				file_des = FileDescriptionMessage(0, 0, '', '')
+				file_des.receive(sock)
+				if file_des.received:
+					print("Receiving sync file details:")
+					print(file_des.file_name)
+					print(file_des.content_id)
+					print(file_des.file_size)
 
-				# check if file already exists and respond to the other server
-				if file_des.content_id in content_dict:
-					content = content_dict[file_des.content_id]
-					if content.status == ContentStatus.STORED:
-						file_exists = True
-					elif content.status == ContentStatus.UNSYNCED:
-						content_dictL.acquire()
-						content_dict[file_des.content_id].status = ContentStatus.STORED
-						dump()
-						content_dictL.release()
-						file_exists	= True
-					else: # can check MD5 for incomplete files but unnecessary hassle :/
+					# check if file already exists and respond to the other server
+					if file_des.content_id in content_dict:
+						content = content_dict[file_des.content_id]
+						if content.status == ContentStatus.STORED:
+							file_exists = True
+						elif content.status == ContentStatus.UNSYNCED:
+							content_dictL.acquire()
+							content_dict[file_des.content_id].status = ContentStatus.STORED
+							dump()
+							content_dictL.release()
+							file_exists	= True
+						else: # can check MD5 for incomplete files but unnecessary hassle :/
+							file_exists = False
+					else:
 						file_exists = False
+
+					msg = OriginHeartbeatMessage(file_exists)
+					msg.send(sock)
+
+					if file_exists:
+						continue
+
+					content_dictL.acquire()
+					content_dict[file_des.content_id] = Content(file_des.content_id, file_des.file_name, ContentStatus.INCOMPLETE)
+					dump()
+					content_dictL.release()
+					with open('data/' + file_des.file_name, 'wb') as f:
+						print('file opened')
+						print("Content ID: ",file_des.content_id)
+						content_id = file_des.content_id
+						file_size = file_des.file_size
+						total_received=0
+						seq_no=0
+						while True:
+							msg = ContentMessage(content_id, seq_no)
+
+							try:
+								msg.receive(sock,file_size,total_received)
+							except Exception as e:
+								print("Last Sequence Number received: ",last_seq_number_recv)
+								print(e)
+								flag = 0
+								break
+								# return last_seq_number_recv
+							
+							print("Sequence no: ",msg.seq_no)
+							last_seq_number_recv = msg.seq_no
+							data = msg.data
+							total_received+=len(data)
+							# print(len(data))
+							if not data:
+								break
+							f.write(data)
+					if flag == 0:
+						break
+					f.close()
+					content_dictL.acquire()
+					content_dict[file_des.content_id] = Content(file_des.content_id, file_des.file_name, ContentStatus.STORED)
+					dump()
+					content_dictL.release()
 				else:
-					file_exists = False
-
-				msg = OriginHeartbeatMessage(file_exists)
-				msg.send(sock)
-
-				if file_exists:
-					continue
-
-				content_dictL.acquire()
-				content_dict[file_des.content_id] = Content(file_des.content_id, file_des.file_name, ContentStatus.INCOMPLETE)
-				dump()
-				content_dictL.release()
-				with open('data/' + file_des.file_name, 'wb') as f:
-					print('file opened')
-					print("Content ID: ",file_des.content_id)
-					content_id = file_des.content_id
-					file_size = file_des.file_size
-					total_received=0
-					seq_no=0
-					while True:
-						msg = ContentMessage(content_id, seq_no)
-
-						try:
-							msg.receive(sock,file_size,total_received)
-						except Exception as e:
-							print("Last Sequence Number received: ",last_seq_number_recv)
-							print(e)
-							flag = 0
-							break
-							# return last_seq_number_recv
-						
-						print("Sequence no: ",msg.seq_no)
-						last_seq_number_recv = msg.seq_no
-						data = msg.data
-						total_received+=len(data)
-						# print(len(data))
-						if not data:
-							break
-						f.write(data)
-				if flag == 0:
+					print("Error receiving")
 					break
-				f.close()
-				content_dictL.acquire()
-				content_dict[file_des.content_id] = Content(file_des.content_id, file_des.file_name, ContentStatus.STORED)
-				dump()
-				content_dictL.release()
-			else:
-				print("Error receiving")
-				break
-
+			except Exception as e:
+				print(e)
 
 
 def serve_edge_server_helper(conn, addr):
