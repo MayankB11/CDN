@@ -25,16 +25,16 @@ Client 0
 
 
 Order of - running code
-DNS
-LB1
-LB2
-O1
-O2
-CP
-E1
-E2
-E3
-Client
+DNS - PC
+LB1 - Nisarg
+LB2 - Bhushan
+O1 - Animesh
+O2 - Bhushan
+CP - Nisarg
+E1 - PC
+E2 - Animesh
+E3 - Bhushan
+Client - Nisarg, Animesh, PC
 
 
 Test cases.
